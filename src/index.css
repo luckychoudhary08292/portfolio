@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+
+  body {
+    background-color: #ffffff;
+    color: #171717;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom marquee keyframes */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-scroll-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 24s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-marquee-reverse {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll-reverse 24s linear infinite;
+}
+
+.animate-marquee-reverse:hover {
+  animation-play-state: paused;
+}
+
+/* Custom subtle dark silk gradient background */
+.bg-dark-mesh {
+  background-color: #121316;
+  background-image: 
+    radial-gradient(at 20% 20%, rgba(249, 115, 22, 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 30%, rgba(234, 88, 12, 0.08) 0px, transparent 45%),
+    radial-gradient(at 40% 80%, rgba(180, 83, 9, 0.06) 0px, transparent 50%),
+    linear-gradient(135deg, #0e0f12 0%, #17181c 50%, #111215 100%);
+}
