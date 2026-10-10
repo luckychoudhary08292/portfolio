@@ -25,20 +25,20 @@ export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireMo
               className="w-full lg:w-1/2 flex items-center justify-center"
             >
               {/* Orange Pill Arch */}
-              <div className="relative w-full max-w-[360px] xs:max-w-[420px] sm:max-w-[500px] md:max-w-[540px] lg:max-w-[580px] aspect-[5/4] max-w-[92vw] flex items-end justify-center group/whyhire">
+              <div className="relative w-full max-w-[440px] xs:max-w-[500px] sm:max-w-[580px] md:max-w-[650px] lg:max-w-[700px] xl:max-w-[760px] 2xl:max-w-[820px] aspect-[5/4] flex items-end justify-center group/whyhire">
                 {/* Arch Shape */}
-                <div className="absolute bottom-0 w-[90%] sm:w-[86%] h-[88%] bg-gradient-to-t from-[#f89552] to-[#fcb985] rounded-t-[160px] sm:rounded-t-[200px] rounded-b-[40px] shadow-xl overflow-hidden" />
+                <div className="absolute bottom-0 w-[92%] sm:w-[88%] h-[90%] bg-gradient-to-t from-[#f89552] to-[#fcb985] rounded-t-[180px] sm:rounded-t-[220px] lg:rounded-t-[260px] rounded-b-[44px] shadow-xl overflow-hidden" />
 
                 {/* Portrait image - Big and Fitted in 5:4 Ratio */}
                 {profile.whyHireMeImage ? (
                   <img
                     src={profile.whyHireMeImage}
                     alt={`Why Hire ${profile.name || 'Developer'}`}
-                    className="relative z-10 w-full h-full aspect-[5/4] object-cover object-top drop-shadow-2xl select-none cursor-pointer"
+                    className="relative z-10 w-full h-full aspect-[5/4] object-cover object-top drop-shadow-2xl select-none cursor-pointer hover:scale-[1.02] transition-transform duration-300"
                     style={{
                       aspectRatio: '5 / 4',
-                      maskImage: 'linear-gradient(to bottom, black 86%, transparent 100%)',
-                      WebkitMaskImage: 'linear-gradient(to bottom, black 86%, transparent 100%)',
+                      maskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
+                      WebkitMaskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
                     }}
                     onClick={() => setIsFullscreen(true)}
                     title="Tap to view fitted on screen"
