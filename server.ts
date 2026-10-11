@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import path from 'path';
@@ -23,6 +24,17 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
+
+// CORS Support for Admin Panel & External Clients
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (_req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 const rawUri =
   process.env.MONGODB_URI ||
@@ -64,14 +76,14 @@ async function seedInitialData() {
         problemsSolved: '450+',
         gpa: '8.8 / 10',
         degree: 'B.Tech in Computer Science & Engineering',
-        university: 'University Institute of Technology',
+        university: 'Sage University Indore',
         whyHireMeBio:
           'As an aspiring Software Engineer, I combine solid computer science fundamentals (Data Structures, Algorithms, OS, DBMS) with hands-on full-stack development. Ready to deliver immediate value as a Software Engineer Intern or Associate SWE.',
-        email: 'contact.luckychoudhary@gmail.com',
+        email: 'luckychoudhary08292@gmail.com',
         phone: '+91 7738443636',
         website: 'lucky-choudhary.dev',
         github: 'https://github.com/luckychoudhary',
-        linkedin: 'https://linkedin.com/in/luckychoudhary',
+        linkedin: 'https://linkedin.com/in/lucky-choudhary08292',
         leetcode: 'https://leetcode.com/luckychoudhary',
         resumeUrl: '#',
         heroImage: '/src/assets/images/lucky_swe_portrait_1791616127280.jpg',
@@ -350,7 +362,7 @@ async function seedInitialData() {
 }
 
 // ==========================================
-// API ROUTES
+// API ROUTES (ALL 8 COLLECTIONS + ADMIN PANEL)
 // ==========================================
 
 // Aggregated Portfolio Data for Fast Initial Rendering
@@ -388,69 +400,53 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
   }
 });
 
-// Profile Routes
-app.get('/api/profile', async (_req: Request, res: Response) => {
+// ------------------------------------------
+// 1. Profile Routes (/api/profile & /api/profiles)
+// ------------------------------------------
+const getProfileHandler = async (_req: Request, res: Response) => {
   try {
     const profile = await Profile.findOne();
     res.json({ success: true, data: profile });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch profile' });
   }
-});
+};
 
-app.put('/api/profile', async (req: Request, res: Response) => {
+const updateProfileHandler = async (req: Request, res: Response) => {
   try {
     const updated = await Profile.findOneAndUpdate({}, req.body, { new: true, upsert: true });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
-});
+};
 
-// Skills Routes
-app.get('/api/skills', async (_req: Request, res: Response) => {
-  try {
-    const skills = await SkillCategory.find().sort({ order: 1 });
-    res.json({ success: true, data: skills });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch skills' });
-  }
-});
+app.get('/api/profile', getProfileHandler);
+app.get('/api/profiles', getProfileHandler);
+app.put('/api/profile', updateProfileHandler);
+app.put('/api/profiles', updateProfileHandler);
+app.post('/api/profile', updateProfileHandler);
+app.post('/api/profiles', updateProfileHandler);
 
-app.post('/api/skills', async (req: Request, res: Response) => {
-  try {
-    const newSkill = await SkillCategory.create(req.body);
-    res.status(201).json({ success: true, data: newSkill });
-  } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to create skill category' });
-  }
-});
-
-app.put('/api/skills/:id', async (req: Request, res: Response) => {
-  try {
-    const updated = await SkillCategory.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ success: true, data: updated });
-  } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to update skill' });
-  }
-});
-
-app.delete('/api/skills/:id', async (req: Request, res: Response) => {
-  try {
-    await SkillCategory.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Skill deleted' });
-  } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to delete skill' });
-  }
-});
-
-// Certificates Routes
+// ------------------------------------------
+// 2. Certificates Routes (/api/certificates)
+// ------------------------------------------
 app.get('/api/certificates', async (_req: Request, res: Response) => {
   try {
     const certs = await Certificate.find().sort({ order: 1 });
     res.json({ success: true, data: certs });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch certificates' });
+  }
+});
+
+app.get('/api/certificates/:id', async (req: Request, res: Response) => {
+  try {
+    const cert = await Certificate.findById(req.params.id);
+    if (!cert) return res.status(404).json({ success: false, error: 'Certificate not found' });
+    res.json({ success: true, data: cert });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch certificate' });
   }
 });
 
@@ -466,6 +462,7 @@ app.post('/api/certificates', async (req: Request, res: Response) => {
 app.put('/api/certificates/:id', async (req: Request, res: Response) => {
   try {
     const updated = await Certificate.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Certificate not found' });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update certificate' });
@@ -481,13 +478,25 @@ app.delete('/api/certificates/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Projects Routes
+// ------------------------------------------
+// 3. Projects Routes (/api/projects)
+// ------------------------------------------
 app.get('/api/projects', async (_req: Request, res: Response) => {
   try {
     const projects = await Project.find().sort({ order: 1 });
     res.json({ success: true, data: projects });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch projects' });
+  }
+});
+
+app.get('/api/projects/:id', async (req: Request, res: Response) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
+    res.json({ success: true, data: project });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch project' });
   }
 });
 
@@ -503,6 +512,7 @@ app.post('/api/projects', async (req: Request, res: Response) => {
 app.put('/api/projects/:id', async (req: Request, res: Response) => {
   try {
     const updated = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Project not found' });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update project' });
@@ -518,13 +528,86 @@ app.delete('/api/projects/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Experiences Routes
+// ------------------------------------------
+// 4. Skills / SkillCategories Routes (/api/skillcategories & /api/skills)
+// ------------------------------------------
+const getSkillsHandler = async (_req: Request, res: Response) => {
+  try {
+    const skills = await SkillCategory.find().sort({ order: 1 });
+    res.json({ success: true, data: skills });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch skills' });
+  }
+};
+
+const getSkillByIdHandler = async (req: Request, res: Response) => {
+  try {
+    const skill = await SkillCategory.findById(req.params.id);
+    if (!skill) return res.status(404).json({ success: false, error: 'Skill category not found' });
+    res.json({ success: true, data: skill });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch skill category' });
+  }
+};
+
+const createSkillHandler = async (req: Request, res: Response) => {
+  try {
+    const newSkill = await SkillCategory.create(req.body);
+    res.status(201).json({ success: true, data: newSkill });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to create skill category' });
+  }
+};
+
+const updateSkillHandler = async (req: Request, res: Response) => {
+  try {
+    const updated = await SkillCategory.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Skill category not found' });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to update skill category' });
+  }
+};
+
+const deleteSkillHandler = async (req: Request, res: Response) => {
+  try {
+    await SkillCategory.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Skill category deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to delete skill category' });
+  }
+};
+
+app.get('/api/skillcategories', getSkillsHandler);
+app.get('/api/skills', getSkillsHandler);
+app.get('/api/skillcategories/:id', getSkillByIdHandler);
+app.get('/api/skills/:id', getSkillByIdHandler);
+app.post('/api/skillcategories', createSkillHandler);
+app.post('/api/skills', createSkillHandler);
+app.put('/api/skillcategories/:id', updateSkillHandler);
+app.put('/api/skills/:id', updateSkillHandler);
+app.delete('/api/skillcategories/:id', deleteSkillHandler);
+app.delete('/api/skills/:id', deleteSkillHandler);
+
+// ------------------------------------------
+// 5. Experiences Routes (/api/experiences)
+// ------------------------------------------
 app.get('/api/experiences', async (_req: Request, res: Response) => {
   try {
     const experiences = await Experience.find().sort({ order: 1 });
     res.json({ success: true, data: experiences });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch experiences' });
+  }
+});
+
+app.get('/api/experiences/:id', async (req: Request, res: Response) => {
+  try {
+    const exp = await Experience.findById(req.params.id);
+    if (!exp) return res.status(404).json({ success: false, error: 'Experience not found' });
+    res.json({ success: true, data: exp });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch experience' });
   }
 });
 
@@ -540,6 +623,7 @@ app.post('/api/experiences', async (req: Request, res: Response) => {
 app.put('/api/experiences/:id', async (req: Request, res: Response) => {
   try {
     const updated = await Experience.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Experience not found' });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update experience' });
@@ -555,7 +639,9 @@ app.delete('/api/experiences/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Testimonials Routes
+// ------------------------------------------
+// 6. Testimonials Routes (/api/testimonials)
+// ------------------------------------------
 app.get('/api/testimonials', async (_req: Request, res: Response) => {
   try {
     const testimonials = await Testimonial.find().sort({ order: 1 });
@@ -565,13 +651,63 @@ app.get('/api/testimonials', async (_req: Request, res: Response) => {
   }
 });
 
-// Client & Recruiter Inquiries
+app.get('/api/testimonials/:id', async (req: Request, res: Response) => {
+  try {
+    const item = await Testimonial.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, error: 'Testimonial not found' });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch testimonial' });
+  }
+});
+
+app.post('/api/testimonials', async (req: Request, res: Response) => {
+  try {
+    const newTestimonial = await Testimonial.create(req.body);
+    res.status(201).json({ success: true, data: newTestimonial });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to create testimonial' });
+  }
+});
+
+app.put('/api/testimonials/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await Testimonial.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Testimonial not found' });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to update testimonial' });
+  }
+});
+
+app.delete('/api/testimonials/:id', async (req: Request, res: Response) => {
+  try {
+    await Testimonial.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Testimonial deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to delete testimonial' });
+  }
+});
+
+// ------------------------------------------
+// 7. Client & Recruiter Inquiries (/api/inquiries)
+// ------------------------------------------
 app.get('/api/inquiries', async (_req: Request, res: Response) => {
   try {
     const inquiries = await Inquiry.find().sort({ createdAt: -1 });
     res.json({ success: true, data: inquiries });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch inquiries' });
+  }
+});
+
+app.get('/api/inquiries/:id', async (req: Request, res: Response) => {
+  try {
+    const item = await Inquiry.findById(req.params.id);
+    if (!item) return res.status(404).json({ success: false, error: 'Inquiry not found' });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch inquiry' });
   }
 });
 
@@ -584,7 +720,38 @@ app.post('/api/inquiries', async (req: Request, res: Response) => {
   }
 });
 
-// Subscribers
+app.put('/api/inquiries/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await Inquiry.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Inquiry not found' });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to update inquiry' });
+  }
+});
+
+app.patch('/api/inquiries/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await Inquiry.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Inquiry not found' });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to update inquiry' });
+  }
+});
+
+app.delete('/api/inquiries/:id', async (req: Request, res: Response) => {
+  try {
+    await Inquiry.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Inquiry deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to delete inquiry' });
+  }
+});
+
+// ------------------------------------------
+// 8. Subscribers Routes (/api/subscribers)
+// ------------------------------------------
 app.get('/api/subscribers', async (_req: Request, res: Response) => {
   try {
     const subscribers = await Subscriber.find().sort({ createdAt: -1 });
@@ -594,20 +761,49 @@ app.get('/api/subscribers', async (_req: Request, res: Response) => {
   }
 });
 
+app.get('/api/subscribers/:id', async (req: Request, res: Response) => {
+  try {
+    const sub = await Subscriber.findById(req.params.id);
+    if (!sub) return res.status(404).json({ success: false, error: 'Subscriber not found' });
+    res.json({ success: true, data: sub });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch subscriber' });
+  }
+});
+
 app.post('/api/subscribers', async (req: Request, res: Response) => {
   try {
-    const { email, source } = req.body;
+    const { email, status } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
     const subscriber = await Subscriber.findOneAndUpdate(
-      { email },
-      { email, source: source || 'website' },
-      { upsert: true, new: true }
+      { email: email.toLowerCase().trim() },
+      { email: email.toLowerCase().trim(), status: status || 'active' },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(201).json({ success: true, data: subscriber });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to subscribe' });
+  }
+});
+
+app.put('/api/subscribers/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await Subscriber.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Subscriber not found' });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to update subscriber' });
+  }
+});
+
+app.delete('/api/subscribers/:id', async (req: Request, res: Response) => {
+  try {
+    await Subscriber.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Subscriber deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to delete subscriber' });
   }
 });
 
