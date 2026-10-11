@@ -201,7 +201,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
               <li className="flex items-center gap-2.5">
                 <a
                   href={`mailto:${profile.email}`}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors truncate max-w-full"
                 >
                   {profile.email}
                 </a>
@@ -211,9 +211,9 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
                   href={profile.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors truncate max-w-full"
                 >
-                  github.com/luckychoudhary
+                  {profile.github ? profile.github.replace(/^https?:\/\//, '') : 'github.com'}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
@@ -221,9 +221,9 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
                   href={profile.linkedin}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors truncate max-w-full"
                 >
-                  linkedin.com/in/luckychoudhary
+                  {profile.linkedin ? profile.linkedin.replace(/^https?:\/\//, '') : 'linkedin.com'}
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
@@ -231,9 +231,9 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
                   href={profile.leetcode}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors truncate max-w-full"
                 >
-                  leetcode.com/luckychoudhary
+                  {profile.leetcode ? profile.leetcode.replace(/^https?:\/\//, '') : 'leetcode.com'}
                 </a>
               </li>
             </ul>

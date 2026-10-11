@@ -5,6 +5,12 @@ import {
   ExperienceItem,
   ProjectItem,
   TestimonialItem,
+  defaultProfile,
+  defaultSkills,
+  defaultCertificates,
+  defaultExperiences,
+  defaultProjects,
+  defaultTestimonials,
 } from '../data/portfolioData';
 
 export interface ProfileData {
@@ -49,37 +55,15 @@ interface PortfolioContextType {
   submitSubscriber: (email: string, source?: string) => Promise<boolean>;
 }
 
-const emptyProfile: ProfileData = {
-  name: '',
-  title: '',
-  heroQuote: '',
-  experienceYears: '',
-  projectsCompleted: '',
-  problemsSolved: '',
-  gpa: '',
-  degree: '',
-  university: '',
-  whyHireMeBio: '',
-  email: '',
-  phone: '',
-  website: '',
-  github: '',
-  linkedin: '',
-  leetcode: '',
-  resumeUrl: '',
-  heroImage: '',
-  whyHireMeImage: '',
-};
-
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<ProfileData>(emptyProfile);
-  const [skills, setSkills] = useState<SkillCategoryItem[]>([]);
-  const [certificates, setCertificates] = useState<CertificateItem[]>([]);
-  const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
-  const [testimonials, setTestimonials] = useState<TestimonialItem[]>([]);
+  const [profile, setProfile] = useState<ProfileData>(defaultProfile);
+  const [skills, setSkills] = useState<SkillCategoryItem[]>(defaultSkills);
+  const [certificates, setCertificates] = useState<CertificateItem[]>(defaultCertificates);
+  const [experiences, setExperiences] = useState<ExperienceItem[]>(defaultExperiences);
+  const [projects, setProjects] = useState<ProjectItem[]>(defaultProjects);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(defaultTestimonials);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -100,15 +84,48 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           } = json.data;
 
           if (p) {
-            setProfile(p);
+            setProfile((prev) => ({
+              ...prev,
+              ...p,
+              name: p.name || prev.name,
+              title: p.title || prev.title,
+              heroQuote: p.heroQuote || prev.heroQuote,
+              experienceYears: p.experienceYears || prev.experienceYears,
+              projectsCompleted: p.projectsCompleted || prev.projectsCompleted,
+              problemsSolved: p.problemsSolved || prev.problemsSolved,
+              gpa: p.gpa || prev.gpa,
+              degree: p.degree || prev.degree,
+              university: p.university || prev.university,
+              whyHireMeBio: p.whyHireMeBio || prev.whyHireMeBio,
+              email: p.email || prev.email,
+              phone: p.phone || prev.phone,
+              website: p.website || prev.website,
+              github: p.github || prev.github,
+              linkedin: p.linkedin || prev.linkedin,
+              leetcode: p.leetcode || prev.leetcode,
+              heroImage: p.heroImage || prev.heroImage,
+              whyHireMeImage: p.whyHireMeImage || prev.whyHireMeImage,
+            }));
           }
-          setSkills(Array.isArray(s) ? s.map((item: any) => ({ ...item, id: item._id || item.id })) : []);
-          setCertificates(Array.isArray(c) ? c.map((item: any) => ({ ...item, id: item._id || item.id })) : []);
-          setExperiences(Array.isArray(e) ? e.map((item: any) => ({ ...item, id: item._id || item.id })) : []);
-          setProjects(Array.isArray(pr) ? pr.map((item: any) => ({ ...item, id: item._id || item.id })) : []);
-          setTestimonials(Array.isArray(t) ? t.map((item: any) => ({ ...item, id: item._id || item.id })) : []);
+          if (Array.isArray(s) && s.length > 0) {
+            setSkills(s.map((item: any) => ({ ...item, id: item._id || item.id })));
+          }
+          if (Array.isArray(c) && c.length > 0) {
+            setCertificates(c.map((item: any) => ({ ...item, id: item._id || item.id })));
+          }
+          if (Array.isArray(e) && e.length > 0) {
+            setExperiences(e.map((item: any) => ({ ...item, id: item._id || item.id })));
+          }
+          if (Array.isArray(pr) && pr.length > 0) {
+            setProjects(pr.map((item: any) => ({ ...item, id: item._id || item.id })));
+          }
+          if (Array.isArray(t) && t.length > 0) {
+            setTestimonials(t.map((item: any) => ({ ...item, id: item._id || item.id })));
+          }
           setIsLiveConnected(true);
         }
+      } else {
+        setIsLiveConnected(false);
       }
     } catch (err) {
       console.error('Error fetching data from MongoDB database:', err);
@@ -120,7 +137,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => {
     fetchPortfolioData();
-  }, []);
+
+    // Auto-retry if not connected yet
+    const interval = setInterval(() => {
+      if (!isLiveConnected) {
+        fetchPortfolioData();
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isLiveConnected]);
 
   const submitInquiry = async (data: {
     name: string;

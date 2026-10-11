@@ -91,6 +91,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenHireModal, onExploreProjects }
                   transition={{ duration: 0.7 }}
                   src={profile.heroImage}
                   alt={`${profile.name || 'Developer'} - ${profile.title || 'Portfolio'}`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/src/assets/images/lucky_swe_portrait_1791616127280.jpg';
+                  }}
                   className="relative z-10 w-full h-full object-cover object-top select-none drop-shadow-2xl cursor-pointer"
                   style={{
                     maskImage: 'linear-gradient(to bottom, black 86%, transparent 100%)',

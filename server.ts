@@ -24,20 +24,29 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-const MONGODB_URI =
+const rawUri =
   process.env.MONGODB_URI ||
   'mongodb+srv://portfolio08292:portfolio136366@cluster0.xqhmhxd.mongodb.net/portfolio?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = rawUri.trim().replace(/^["']|["']$/g, '');
+
+let isConnecting = false;
 
 async function connectDB() {
+  if (mongoose.connection.readyState === 1) return;
+  if (isConnecting) return;
   try {
+    isConnecting = true;
+    console.log('Connecting to MongoDB at:', MONGODB_URI.replace(/:[^:@]+@/, ':***@'));
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 6000,
-      connectTimeoutMS: 6000,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
     });
     console.log('✅ Connected to MongoDB successfully!');
     await seedInitialData();
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error);
+  } finally {
+    isConnecting = false;
   }
 }
 
@@ -347,14 +356,19 @@ async function seedInitialData() {
 // Aggregated Portfolio Data for Fast Initial Rendering
 app.get('/api/portfolio', async (_req: Request, res: Response) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      console.log('MongoDB not connected (state: ' + mongoose.connection.readyState + '), reconnecting...');
+      await connectDB();
+    }
+
     const [profile, skills, certificates, projects, experiences, testimonials] =
       await Promise.all([
-        Profile.findOne(),
-        SkillCategory.find().sort({ order: 1 }),
-        Certificate.find().sort({ order: 1 }),
-        Project.find().sort({ order: 1 }),
-        Experience.find().sort({ order: 1 }),
-        Testimonial.find().sort({ order: 1 }),
+        Profile.findOne().lean(),
+        SkillCategory.find().sort({ order: 1 }).lean(),
+        Certificate.find().sort({ order: 1 }).lean(),
+        Project.find().sort({ order: 1 }).lean(),
+        Experience.find().sort({ order: 1 }).lean(),
+        Testimonial.find().sort({ order: 1 }).lean(),
       ]);
 
     res.json({
@@ -369,7 +383,8 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch portfolio data' });
+    console.error('Error in /api/portfolio:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch portfolio data', details: String(error) });
   }
 });
 

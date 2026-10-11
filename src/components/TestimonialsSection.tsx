@@ -101,6 +101,9 @@ export const TestimonialsSection: React.FC = () => {
                         <img
                           src={item.avatar}
                           alt={item.name}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/src/assets/images/client_avatar_jayesh_1791610815588.jpg';
+                          }}
                           className="w-12 h-12 rounded-full object-cover border-2 border-orange-500/30"
                         />
                       ) : (

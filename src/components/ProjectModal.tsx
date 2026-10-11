@@ -32,6 +32,9 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
             <img
               src={project.image}
               alt={project.title}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/src/assets/images/service_smart_home_mockup_1791610793006.jpg';
+              }}
               className="w-full h-full object-cover object-top"
             />
           ) : null}
