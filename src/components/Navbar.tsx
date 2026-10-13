@@ -38,7 +38,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenHireModal }) => {
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+      const navOffset = 95;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth',
+      });
       setActiveSection(id);
       setIsMobileMenuOpen(false);
     }

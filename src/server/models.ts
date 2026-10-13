@@ -188,28 +188,38 @@ const ProfileSchema = new Schema<IProfile>(
 // 5. Experience Model & Schema (experiences collection)
 // ==========================================
 export interface IExperience extends Document {
-  company: string;
+  title: string;      // primary position or headline (e.g., Software Engineer Intern, B.Tech Computer Science)
+  subtitle: string;   // company or institution (e.g., HyperScale Labs, Govt. Excellence Bal Vinay Mandir)
+  date: string;       // duration or year (e.g., June 2024 - Sep 2024, 2022)
+  place: string;      // location (e.g., Indore, Bengaluru / Remote)
+  order: number;
+  // Legacy / fallback fields
+  company?: string;
   location?: string;
   period?: string;
-  role: string;
-  description: string;
-  type: 'education' | 'work' | 'leadership';
-  activeColor: 'orange' | 'dark';
-  order: number;
+  role?: string;
+  description?: string;
+  type?: 'education' | 'work' | 'leadership';
+  activeColor?: 'orange' | 'dark';
   createdAt?: string;
   updatedAt?: string;
 }
 
 const ExperienceSchema = new Schema<IExperience>(
   {
-    company: { type: String, required: true },
-    location: { type: String, default: 'Remote / Hybrid' },
-    period: { type: String, required: true },
-    role: { type: String, required: true },
-    description: { type: String, required: true },
-    type: { type: String, enum: ['education', 'work', 'leadership'], default: 'work' },
-    activeColor: { type: String, enum: ['orange', 'dark'], default: 'orange' },
+    title: { type: String, default: '' },
+    subtitle: { type: String, default: '' },
+    date: { type: String, default: '' },
+    place: { type: String, default: '' },
     order: { type: Number, default: 0 },
+    // Backward compatibility with legacy documents
+    company: { type: String, default: '' },
+    location: { type: String, default: '' },
+    period: { type: String, default: '' },
+    role: { type: String, default: '' },
+    description: { type: String, default: '' },
+    type: { type: String, default: 'work' },
+    activeColor: { type: String, default: 'orange' },
   },
   { timestamps: true }
 );

@@ -85,6 +85,29 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
         Experience.find().sort({ order: 1 }).lean(),
       ]);
 
+    const normalizedExperiences = experiences.map((exp: any) => {
+      const title = exp.title || exp.role || '';
+      const subtitle = exp.subtitle || exp.company || '';
+      const date = exp.date || exp.period || '';
+      const place = exp.place || exp.location || '';
+      const order = typeof exp.order === 'number' ? exp.order : 0;
+
+      return {
+        ...exp,
+        id: exp._id ? String(exp._id) : exp.id,
+        title,
+        subtitle,
+        date,
+        place,
+        order,
+        // Automatic backward fallback compatibility
+        role: title,
+        company: subtitle,
+        period: date,
+        location: place,
+      };
+    });
+
     res.json({
       success: true,
       data: {
@@ -92,7 +115,7 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
         skills,
         certificates,
         projects,
-        experiences,
+        experiences: normalizedExperiences,
       },
     });
   } catch (error) {
@@ -297,10 +320,36 @@ app.delete('/api/skills/:id', deleteSkillHandler);
 // ------------------------------------------
 // 5. Experiences Routes (/api/experiences)
 // ------------------------------------------
+const normalizeExperienceItem = (exp: any) => {
+  if (!exp) return null;
+  const obj = exp.toObject ? exp.toObject() : exp;
+  const title = obj.title || obj.role || '';
+  const subtitle = obj.subtitle || obj.company || '';
+  const date = obj.date || obj.period || '';
+  const place = obj.place || obj.location || '';
+  const order = typeof obj.order === 'number' ? obj.order : 0;
+
+  return {
+    ...obj,
+    id: obj._id ? String(obj._id) : obj.id,
+    title,
+    subtitle,
+    date,
+    place,
+    order,
+    // Automatic fallback compatibility with existing database records:
+    role: title,
+    company: subtitle,
+    period: date,
+    location: place,
+  };
+};
+
 app.get('/api/experiences', async (_req: Request, res: Response) => {
   try {
-    const experiences = await Experience.find().sort({ order: 1 });
-    res.json({ success: true, data: experiences });
+    const experiences = await Experience.find().sort({ order: 1 }).lean();
+    const normalized = experiences.map(normalizeExperienceItem);
+    res.json({ success: true, data: normalized });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch experiences' });
   }
@@ -308,9 +357,9 @@ app.get('/api/experiences', async (_req: Request, res: Response) => {
 
 app.get('/api/experiences/:id', async (req: Request, res: Response) => {
   try {
-    const exp = await Experience.findById(req.params.id);
+    const exp = await Experience.findById(req.params.id).lean();
     if (!exp) return res.status(404).json({ success: false, error: 'Experience not found' });
-    res.json({ success: true, data: exp });
+    res.json({ success: true, data: normalizeExperienceItem(exp) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch experience' });
   }
@@ -318,20 +367,66 @@ app.get('/api/experiences/:id', async (req: Request, res: Response) => {
 
 app.post('/api/experiences', async (req: Request, res: Response) => {
   try {
-    const newExp = await Experience.create(req.body);
-    res.status(201).json({ success: true, data: newExp });
+    const { title, subtitle, date, place, order, role, company, period, location, description, type } = req.body;
+    const finalTitle = title || role || '';
+    const finalSubtitle = subtitle || company || '';
+    const finalDate = date || period || '';
+    const finalPlace = place || location || '';
+    const finalOrder = typeof order === 'number' ? order : 0;
+
+    const newExp = await Experience.create({
+      title: finalTitle,
+      subtitle: finalSubtitle,
+      date: finalDate,
+      place: finalPlace,
+      order: finalOrder,
+      role: finalTitle,
+      company: finalSubtitle,
+      period: finalDate,
+      location: finalPlace,
+      description: description || '',
+      type: type || 'work',
+    });
+    res.status(201).json({ success: true, data: normalizeExperienceItem(newExp) });
   } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to create experience' });
+    res.status(400).json({ success: false, error: 'Failed to create experience', details: String(error) });
   }
 });
 
 app.put('/api/experiences/:id', async (req: Request, res: Response) => {
   try {
-    const updated = await Experience.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { title, subtitle, date, place, order, role, company, period, location, description, type } = req.body;
+    const updatePayload: any = { ...req.body };
+
+    if (title !== undefined || role !== undefined) {
+      const val = title || role || '';
+      updatePayload.title = val;
+      updatePayload.role = val;
+    }
+    if (subtitle !== undefined || company !== undefined) {
+      const val = subtitle || company || '';
+      updatePayload.subtitle = val;
+      updatePayload.company = val;
+    }
+    if (date !== undefined || period !== undefined) {
+      const val = date || period || '';
+      updatePayload.date = val;
+      updatePayload.period = val;
+    }
+    if (place !== undefined || location !== undefined) {
+      const val = place || location || '';
+      updatePayload.place = val;
+      updatePayload.location = val;
+    }
+    if (typeof order === 'number') {
+      updatePayload.order = order;
+    }
+
+    const updated = await Experience.findByIdAndUpdate(req.params.id, updatePayload, { new: true }).lean();
     if (!updated) return res.status(404).json({ success: false, error: 'Experience not found' });
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: normalizeExperienceItem(updated) });
   } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to update experience' });
+    res.status(400).json({ success: false, error: 'Failed to update experience', details: String(error) });
   }
 });
 

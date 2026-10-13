@@ -89,7 +89,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setCertificates(c.map((item: any) => ({ ...item, id: item._id || item.id })));
           }
           if (Array.isArray(e)) {
-            setExperiences(e.map((item: any) => ({ ...item, id: item._id || item.id })));
+            setExperiences(
+              e.map((item: any) => ({
+                ...item,
+                id: item._id || item.id,
+                title: item.title || item.role || '',
+                subtitle: item.subtitle || item.company || '',
+                date: item.date || item.period || '',
+                place: item.place || item.location || '',
+                order: typeof item.order === 'number' ? item.order : 0,
+                role: item.title || item.role || '',
+                company: item.subtitle || item.company || '',
+                period: item.date || item.period || '',
+                location: item.place || item.location || '',
+              }))
+            );
           }
           if (Array.isArray(pr)) {
             setProjects(pr.map((item: any) => ({ ...item, id: item._id || item.id })));
