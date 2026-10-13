@@ -74,10 +74,10 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
               {/* Logo */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-full bg-[#ff6422] flex items-center justify-center text-white font-bold text-xs tracking-tighter">
-                  LC
+                  {profile.name ? profile.name.slice(0, 2).toUpperCase() : 'LC'}
                 </div>
-                <span className="font-extrabold text-xl tracking-wider text-white">
-                  LUCKY CHOUDHARY
+                <span className="font-extrabold text-xl tracking-wider text-white uppercase">
+                  {profile.name || 'PORTFOLIO'}
                 </span>
               </div>
 
@@ -279,7 +279,7 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
 
         {/* Bottom Credits */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <div>Copyright© 2026 Lucky Choudhary. All Rights Reserved.</div>
+          <div>Copyright© 2026 {profile.name || 'Developer'}. All Rights Reserved.</div>
           <div className="flex items-center gap-2">
             <span>Built with React 19, TypeScript, Express & MongoDB</span>
           </div>

@@ -10,6 +10,7 @@ export interface ICertificate extends Document {
   credentialId?: string;
   verifyUrl?: string;
   badge?: string; // 'aws' | 'meta' | 'google' | 'leetcode' (Default: 'aws')
+  category?: string; // Preset: 'Programming Languages' | 'Web Development' | 'Cloud & DevOps' | 'AI & Tools' | 'Data Science' | 'Hackathons' | 'Cybersecurity' | 'General'
   image?: string; // Image URL or Base64 (Default: '')
   skills: string[];
   order: number;
@@ -25,6 +26,7 @@ const CertificateSchema = new Schema<ICertificate>(
     credentialId: { type: String, default: '' },
     verifyUrl: { type: String, default: '' },
     badge: { type: String, default: 'aws' },
+    category: { type: String, default: 'General' },
     image: { type: String, default: '' },
     skills: [{ type: String }],
     order: { type: Number, default: 0 },
@@ -41,7 +43,13 @@ export interface IProject extends Document {
   category: string;
   tag: string;
   image: string;
+  gallery?: string[];
   description: string;
+  overview?: string;
+  keyFeatures?: string[];
+  architecture?: string;
+  role?: string;
+  duration?: string;
   githubUrl?: string;
   liveUrl?: string;
   metrics?: string;
@@ -60,7 +68,13 @@ const ProjectSchema = new Schema<IProject>(
     category: { type: String, default: 'Full-Stack' },
     tag: { type: String, default: 'Full-Stack' },
     image: { type: String, default: '' },
+    gallery: [{ type: String }],
     description: { type: String, required: true },
+    overview: { type: String, default: '' },
+    keyFeatures: [{ type: String }],
+    architecture: { type: String, default: '' },
+    role: { type: String, default: 'Software Engineer' },
+    duration: { type: String, default: '' },
     githubUrl: { type: String, default: 'https://github.com/luckychoudhary' },
     liveUrl: { type: String, default: '#' },
     metrics: { type: String, default: '' },
@@ -79,10 +93,12 @@ export interface ISkillCategory extends Document {
   category: string;
   description?: string;
   image?: string;
+  type?: string; // 'hard' | 'soft'
   items: Array<{
     name: string;
     level?: string;
     badge?: string;
+    logo?: string; // Official PNG logo URL or base64 uploaded from admin panel
   }>;
   order: number;
   createdAt?: string;
@@ -94,11 +110,13 @@ const SkillCategorySchema = new Schema<ISkillCategory>(
     category: { type: String, required: true },
     description: { type: String, default: '' },
     image: { type: String, default: '' },
+    type: { type: String, default: 'hard' },
     items: [
       {
         name: { type: String, required: true },
         level: { type: String, default: 'Proficient' },
         badge: { type: String, default: '' },
+        logo: { type: String, default: '' },
       },
     ],
     order: { type: Number, default: 0 },
@@ -160,8 +178,8 @@ const ProfileSchema = new Schema<IProfile>(
     linkedin: { type: String, default: 'https://linkedin.com/in/lucky-choudhary08292' },
     leetcode: { type: String, default: 'https://leetcode.com/luckychoudhary' },
     resumeUrl: { type: String, default: '#' },
-    heroImage: { type: String, default: '/src/assets/images/lucky_swe_portrait_1791616127280.jpg' },
-    whyHireMeImage: { type: String, default: '/src/assets/images/lucky_swe_pointing_1791616138165.jpg' },
+    heroImage: { type: String, default: '' },
+    whyHireMeImage: { type: String, default: '' },
   },
   { timestamps: true }
 );
@@ -197,31 +215,25 @@ const ExperienceSchema = new Schema<IExperience>(
 );
 
 // ==========================================
-// 6. Testimonial Model & Schema (testimonials collection)
+// 6. SkillLibrary Model & Schema (skilllibraries collection)
 // ==========================================
-export interface ITestimonial extends Document {
+export interface ISkillLibrary extends Document {
   name: string;
-  role?: string;
-  company?: string;
-  avatar?: string;
-  rating: number;
-  relationship?: string;
-  content: string;
-  order: number;
+  category: string;
+  badge?: string;
+  color?: string;
+  logo?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
-const TestimonialSchema = new Schema<ITestimonial>(
+const SkillLibrarySchema = new Schema<ISkillLibrary>(
   {
     name: { type: String, required: true },
-    role: { type: String, default: 'Senior Software Engineer' },
-    company: { type: String, default: 'Sugee Tech Labs' },
-    avatar: { type: String, default: '' },
-    rating: { type: Number, default: 5 },
-    relationship: { type: String, default: 'Mentor' },
-    content: { type: String, required: true },
-    order: { type: Number, default: 0 },
+    category: { type: String, default: 'Languages' },
+    badge: { type: String, default: '' },
+    color: { type: String, default: '#ff6422' },
+    logo: { type: String, default: '' },
   },
   { timestamps: true }
 );
@@ -270,12 +282,12 @@ const SubscriberSchema = new Schema<ISubscriber>(
   { timestamps: true }
 );
 
-// Explicit collection names bound to models
+// Explicit collection names bound to models (All 8 active collections)
 export const Certificate = mongoose.model<ICertificate>('Certificate', CertificateSchema, 'certificates');
 export const Project = mongoose.model<IProject>('Project', ProjectSchema, 'projects');
 export const SkillCategory = mongoose.model<ISkillCategory>('SkillCategory', SkillCategorySchema, 'skillcategories');
 export const Profile = mongoose.model<IProfile>('Profile', ProfileSchema, 'profiles');
 export const Experience = mongoose.model<IExperience>('Experience', ExperienceSchema, 'experiences');
-export const Testimonial = mongoose.model<ITestimonial>('Testimonial', TestimonialSchema, 'testimonials');
+export const SkillLibrary = mongoose.model<ISkillLibrary>('SkillLibrary', SkillLibrarySchema, 'skilllibraries');
 export const Inquiry = mongoose.model<IInquiry>('Inquiry', InquirySchema, 'inquiries');
 export const Subscriber = mongoose.model<ISubscriber>('Subscriber', SubscriberSchema, 'subscribers');

@@ -35,7 +35,7 @@ export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireMo
                     src={profile.whyHireMeImage}
                     alt={`Why Hire ${profile.name || 'Developer'}`}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/src/assets/images/lucky_swe_pointing_1791616138165.jpg';
+                      (e.target as HTMLImageElement).style.display = 'none';
                     }}
                     className="relative z-10 w-full h-full aspect-[5/4] object-cover object-top drop-shadow-2xl select-none cursor-pointer hover:scale-[1.02] transition-transform duration-300"
                     style={{

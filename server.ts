@@ -10,7 +10,7 @@ import {
   Certificate,
   Experience,
   Project,
-  Testimonial,
+  SkillLibrary,
   Inquiry,
   Subscriber,
 } from './src/server/models.ts';
@@ -23,7 +23,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // CORS Support for Admin Panel & External Clients
 app.use((_req, res, next) => {
@@ -54,7 +55,6 @@ async function connectDB() {
       connectTimeoutMS: 8000,
     });
     console.log('✅ Connected to MongoDB successfully!');
-    await seedInitialData();
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error);
   } finally {
@@ -62,307 +62,10 @@ async function connectDB() {
   }
 }
 
-async function seedInitialData() {
-  try {
-    const profileCount = await Profile.countDocuments();
-    if (profileCount === 0) {
-      await Profile.create({
-        name: 'Lucky Choudhary',
-        title: 'Software Engineering Student',
-        heroQuote:
-          'Passionate about architecting high-performance distributed systems, solving algorithmic challenges, and crafting reliable full-stack applications.',
-        experienceYears: '2022 - 2026',
-        projectsCompleted: '20+',
-        problemsSolved: '450+',
-        gpa: '8.8 / 10',
-        degree: 'B.Tech in Computer Science & Engineering',
-        university: 'Sage University Indore',
-        whyHireMeBio:
-          'As an aspiring Software Engineer, I combine solid computer science fundamentals (Data Structures, Algorithms, OS, DBMS) with hands-on full-stack development. Ready to deliver immediate value as a Software Engineer Intern or Associate SWE.',
-        email: 'luckychoudhary08292@gmail.com',
-        phone: '+91 7738443636',
-        website: 'lucky-choudhary.dev',
-        github: 'https://github.com/luckychoudhary',
-        linkedin: 'https://linkedin.com/in/lucky-choudhary08292',
-        leetcode: 'https://leetcode.com/luckychoudhary',
-        resumeUrl: '#',
-        heroImage: '/src/assets/images/lucky_swe_portrait_1791616127280.jpg',
-        whyHireMeImage: '/src/assets/images/lucky_swe_pointing_1791616138165.jpg',
-      });
-      console.log('🌱 Seeded default Profile for Lucky Choudhary');
-    }
-
-    const skillsCount = await SkillCategory.countDocuments();
-    if (skillsCount === 0) {
-      await SkillCategory.insertMany([
-        {
-          category: 'Programming Languages',
-          description: 'Core languages utilized for data structures, algorithmic systems, and application logic.',
-          image: '/src/assets/images/blog_music_player_1791610853630.jpg',
-          items: [
-            { name: 'TypeScript', level: 'Advanced', badge: 'ts' },
-            { name: 'JavaScript (ES6+)', level: 'Advanced', badge: 'js' },
-            { name: 'Python', level: 'Proficient', badge: 'python' },
-            { name: 'C++', level: 'DSA & Competitions', badge: 'cpp' },
-            { name: 'Java', level: 'OOP & Systems', badge: 'java' },
-            { name: 'SQL', level: 'Relational DBs', badge: 'sql' },
-          ],
-          order: 1,
-        },
-        {
-          category: 'Frontend Engineering',
-          description: 'Component architecture, reactive state management, and modern responsive user interfaces.',
-          image: '/src/assets/images/service_smart_home_mockup_1791610793006.jpg',
-          items: [
-            { name: 'React 19', level: 'Advanced', badge: 'react' },
-            { name: 'Next.js', level: 'Proficient', badge: 'nextjs' },
-            { name: 'Tailwind CSS', level: 'Advanced', badge: 'tailwind' },
-            { name: 'Redux Toolkit', level: 'State Mgmt', badge: 'redux' },
-            { name: 'HTML5 & Modern CSS', level: 'Semantic Standards', badge: 'html' },
-            { name: 'Framer Motion', level: 'Micro-Interactions', badge: 'motion' },
-          ],
-          order: 2,
-        },
-        {
-          category: 'Backend & System Design',
-          description: 'Scalable server-side architectures, RESTful APIs, and secure authentication pipelines.',
-          image: '/src/assets/images/blog_sugee_banking_1791610866547.jpg',
-          items: [
-            { name: 'Node.js', level: 'Advanced', badge: 'node' },
-            { name: 'Express.js', level: 'Advanced', badge: 'express' },
-            { name: 'REST APIs & GraphQL', level: 'API Design', badge: 'api' },
-            { name: 'WebSockets', level: 'Real-Time Sync', badge: 'ws' },
-            { name: 'JWT & OAuth 2.0', level: 'Security', badge: 'auth' },
-            { name: 'Microservices', level: 'Architecture', badge: 'micro' },
-          ],
-          order: 3,
-        },
-        {
-          category: 'Databases & Cloud Tools',
-          description: 'High-performance databases, containerization, cloud hosting, and version control.',
-          image: '/src/assets/images/blog_cinetrade_mockup_1791610929497.jpg',
-          items: [
-            { name: 'MongoDB', level: 'Advanced', badge: 'mongodb' },
-            { name: 'PostgreSQL', level: 'Proficient', badge: 'postgres' },
-            { name: 'Redis', level: 'Caching & Queues', badge: 'redis' },
-            { name: 'Docker', level: 'Containers', badge: 'docker' },
-            { name: 'Git & GitHub', level: 'CI/CD & Workflows', badge: 'git' },
-            { name: 'AWS & Cloud Run', level: 'Cloud Deployment', badge: 'aws' },
-          ],
-          order: 4,
-        },
-      ]);
-      console.log('🌱 Seeded Skill Categories');
-    }
-
-    const certsCount = await Certificate.countDocuments();
-    if (certsCount === 0) {
-      await Certificate.insertMany([
-        {
-          title: 'AWS Certified Cloud Practitioner',
-          issuer: 'Amazon Web Services (AWS)',
-          issueDate: 'May 2024',
-          credentialId: 'AWS-CCP-938210',
-          verifyUrl: 'https://aws.amazon.com',
-          badge: 'aws',
-          image: '/src/assets/images/cert_aws_cloud_doc_1791619234289.jpg',
-          skills: ['Cloud Architecture', 'AWS S3', 'EC2', 'IAM Security', 'VPC Networking'],
-          order: 1,
-        },
-        {
-          title: 'Meta Front-End Developer Specialization',
-          issuer: 'Meta / Coursera',
-          issueDate: 'Feb 2024',
-          credentialId: 'META-FED-841920',
-          verifyUrl: 'https://coursera.org',
-          badge: 'meta',
-          image: '/src/assets/images/cert_meta_frontend_1791619152140.jpg',
-          skills: ['React', 'JavaScript ES6+', 'UI Architecture', 'Version Control'],
-          order: 2,
-        },
-        {
-          title: 'Google Cloud Computing Fundamentals',
-          issuer: 'Google Cloud Platform',
-          issueDate: 'Nov 2023',
-          credentialId: 'GCP-CORE-74921',
-          verifyUrl: 'https://cloud.google.com',
-          badge: 'google',
-          image: '/src/assets/images/cert_google_cloud_1791619162864.jpg',
-          skills: ['Compute Engine', 'Cloud Run', 'GKE Containers', 'Cloud Storage'],
-          order: 3,
-        },
-        {
-          title: 'Problem Solving & 450+ LeetCode Milestone',
-          issuer: 'LeetCode & HackerRank (5★)',
-          issueDate: 'Continuous Achievement',
-          credentialId: 'LC-450-SOLVED',
-          verifyUrl: 'https://leetcode.com',
-          badge: 'leetcode',
-          image: '/src/assets/images/cert_leetcode_dsa_1791619172975.jpg',
-          skills: ['Dynamic Programming', 'Graphs & Trees', 'Binary Search', 'Greedy Algorithmic Proofs'],
-          order: 4,
-        },
-      ]);
-      console.log('🌱 Seeded Certificates');
-    }
-
-    const projectsCount = await Project.countDocuments();
-    if (projectsCount === 0) {
-      await Project.insertMany([
-        {
-          title: 'DevCollab - Real-Time Collaborative IDE',
-          subtitle: 'DevCollab IDE',
-          category: 'Full-Stack',
-          tag: 'Full-Stack',
-          image: '/src/assets/images/service_smart_home_mockup_1791610793006.jpg',
-          description:
-            'Browser-based distributed code editor with real-time operational transformation, multi-cursor presence, syntax highlighting for 20+ languages, and isolated Docker container execution.',
-          githubUrl: 'https://github.com/luckychoudhary/devcollab-ide',
-          liveUrl: '#',
-          metrics: '< 35ms WebSocket Latency',
-          techStack: ['React 19', 'TypeScript', 'Node.js', 'WebSockets', 'Docker', 'Tailwind'],
-          deliverables: ['Real-Time OT Engine', 'Isolated Code Execution', 'Virtual Terminal'],
-          order: 1,
-          featured: true,
-        },
-        {
-          title: 'Distributed Task Queue & Background Worker',
-          subtitle: 'QueueEngine',
-          category: 'Backend & Systems',
-          tag: 'Backend & Systems',
-          image: '/src/assets/images/blog_sugee_banking_1791610866547.jpg',
-          description:
-            'High-throughput asynchronous background job scheduler with Redis and Node.js. Features priority queues, exponential backoff retries, dead-letter alerts, and a real-time monitoring dashboard.',
-          githubUrl: 'https://github.com/luckychoudhary/task-queue-worker',
-          liveUrl: '#',
-          metrics: '10,000+ Jobs / Sec • 99.9% Uptime',
-          techStack: ['TypeScript', 'Node.js', 'Redis', 'Docker', 'MongoDB'],
-          deliverables: ['Worker Cluster', 'Dead-Letter Pipeline', 'Prometheus Metrics'],
-          order: 2,
-          featured: true,
-        },
-        {
-          title: 'SmartHire AI - ATS & Resume Intelligence',
-          subtitle: 'SmartHire AI',
-          category: 'AI & Web',
-          tag: 'AI & Web',
-          image: '/src/assets/images/portfolio_lirante_mockup_1791610877441.jpg',
-          description:
-            'Intelligent resume matching platform that extracts key competencies, evaluates technical projects against job criteria, and generates automated candidate fit analytics.',
-          githubUrl: 'https://github.com/luckychoudhary/smarthire-ai',
-          liveUrl: '#',
-          metrics: '88% Accurate Skill Extraction',
-          techStack: ['Python', 'FastAPI', 'React', 'MongoDB', 'Gemini API'],
-          deliverables: ['Resume Parsing Pipeline', 'Semantic Fit Score', 'Recruiter Portal'],
-          order: 3,
-          featured: false,
-        },
-        {
-          title: 'Cinetrade - Media Digital Asset Simulator',
-          subtitle: 'Cinetrade',
-          category: 'Cloud Native',
-          tag: 'Cloud Native',
-          image: '/src/assets/images/blog_cinetrade_mockup_1791610929497.jpg',
-          description:
-            'Real-time simulation platform for trading media box-office indices with virtual wallets, ledger integrity checks, live chart telemetry, and instant order book matching.',
-          githubUrl: 'https://github.com/luckychoudhary/cinetrade-simulator',
-          liveUrl: '#',
-          metrics: '1,500+ Simulated Trades',
-          techStack: ['Next.js', 'TypeScript', 'MongoDB', 'Chart.js', 'Tailwind'],
-          deliverables: ['Virtual Order Book', 'Real-time Telemetry', 'Portfolio Analytics'],
-          order: 4,
-          featured: false,
-        },
-      ]);
-      console.log('🌱 Seeded SWE Projects');
-    }
-
-    const expCount = await Experience.countDocuments();
-    if (expCount === 0) {
-      await Experience.insertMany([
-        {
-          company: 'University Institute of Technology',
-          location: 'India',
-          period: 'Aug 2022 - June 2026 (Expected)',
-          role: 'B.Tech in Computer Science & Engineering (GPA: 8.8 / 10)',
-          description:
-            'Rigorous foundational coursework in Data Structures, Algorithms, Operating Systems, Database Management Systems, and Object-Oriented Software Design.',
-          type: 'education',
-          activeColor: 'orange',
-          order: 1,
-        },
-        {
-          company: 'Sugee Tech Labs',
-          location: 'Remote / Hybrid',
-          period: 'June 2024 - Sep 2024',
-          role: 'Software Engineer Intern',
-          description:
-            'Engineered backend RESTful services using Node.js, Express, and MongoDB. Implemented Redis caching layers that reduced median database lookup times by 35%.',
-          type: 'work',
-          activeColor: 'dark',
-          order: 2,
-        },
-        {
-          company: 'Google Developer Student Club',
-          location: 'Campus Chapter',
-          period: 'Sep 2023 - Present',
-          role: 'Lead Technical Coordinator',
-          description:
-            'Organized coding bootcamps and workshops for 150+ student developers on Full-Stack JavaScript, Data Structures, and open-source GitHub collaboration.',
-          type: 'leadership',
-          activeColor: 'orange',
-          order: 3,
-        },
-      ]);
-      console.log('🌱 Seeded Experience & Education');
-    }
-
-    const testimonialsCount = await Testimonial.countDocuments();
-    if (testimonialsCount === 0) {
-      await Testimonial.insertMany([
-        {
-          name: 'Siddharth Mehta',
-          role: 'Senior Engineering Manager',
-          company: 'Sugee Tech Labs',
-          avatar: '/src/assets/images/client_avatar_jayesh_1791610815588.jpg',
-          rating: 5.0,
-          relationship: 'Internship Mentor',
-          content:
-            'Lucky showed incredible grasp of system design and clean coding during his internship. He integrated our Redis caching pipeline and resolved bottlenecks independently. A fast learner ready for any high-growth engineering team.',
-          order: 1,
-        },
-        {
-          name: 'Dr. Arvind Sharma',
-          role: 'Professor & Head of Computer Science',
-          company: 'UIT',
-          avatar: '/src/assets/images/client_avatar_jayesh_1791610815588.jpg',
-          rating: 5.0,
-          relationship: 'Academic Advisor',
-          content:
-            'Lucky ranks among the top problem solvers in our computer science batch. His discipline in algorithmic challenges and ability to build comprehensive full-stack applications sets him apart from his peers.',
-          order: 2,
-        },
-        {
-          name: 'Neha Kapoor',
-          role: 'Lead Full-Stack Developer',
-          company: 'National Hackathon Winner',
-          avatar: '/src/assets/images/client_avatar_jayesh_1791610815588.jpg',
-          rating: 5.0,
-          relationship: 'Hackathon Partner',
-          content:
-            'Collaborating with Lucky on our hackathon project was a pleasure. He architected the entire backend API schema and deployed the Docker containers flawlessly in record time, earning us 1st place.',
-          order: 3,
-        },
-      ]);
-      console.log('🌱 Seeded Recommendations');
-    }
-  } catch (error) {
-    console.error('Error seeding data:', error);
-  }
-}
+// Seeding removed: Database collections are managed dynamically via MongoDB Atlas and Admin Panel.
 
 // ==========================================
-// API ROUTES (ALL 8 COLLECTIONS + ADMIN PANEL)
+// API ROUTES (ALL 7 ACTIVE COLLECTIONS + ADMIN PANEL)
 // ==========================================
 
 // Aggregated Portfolio Data for Fast Initial Rendering
@@ -373,14 +76,13 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
       await connectDB();
     }
 
-    const [profile, skills, certificates, projects, experiences, testimonials] =
+    const [profile, skills, certificates, projects, experiences] =
       await Promise.all([
         Profile.findOne().lean(),
         SkillCategory.find().sort({ order: 1 }).lean(),
         Certificate.find().sort({ order: 1 }).lean(),
         Project.find().sort({ order: 1 }).lean(),
         Experience.find().sort({ order: 1 }).lean(),
-        Testimonial.find().sort({ order: 1 }).lean(),
       ]);
 
     res.json({
@@ -391,7 +93,6 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
         certificates,
         projects,
         experiences,
-        testimonials,
       },
     });
   } catch (error) {
@@ -431,9 +132,13 @@ app.post('/api/profiles', updateProfileHandler);
 // ------------------------------------------
 // 2. Certificates Routes (/api/certificates)
 // ------------------------------------------
-app.get('/api/certificates', async (_req: Request, res: Response) => {
+app.get('/api/certificates', async (req: Request, res: Response) => {
   try {
-    const certs = await Certificate.find().sort({ order: 1 });
+    const filter: Record<string, any> = {};
+    if (req.query.category && req.query.category !== 'All') {
+      filter.category = req.query.category;
+    }
+    const certs = await Certificate.find(filter).sort({ order: 1 });
     res.json({ success: true, data: certs });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch certificates' });
@@ -640,52 +345,97 @@ app.delete('/api/experiences/:id', async (req: Request, res: Response) => {
 });
 
 // ------------------------------------------
-// 6. Testimonials Routes (/api/testimonials)
+// 6. Skill Library Routes (/api/skilllibrary & /api/skilllibraries)
 // ------------------------------------------
-app.get('/api/testimonials', async (_req: Request, res: Response) => {
+const DEFAULT_SKILL_LIBRARY = [
+  { name: 'TypeScript', category: 'Languages', badge: 'ts', color: '#3178c6' },
+  { name: 'JavaScript', category: 'Languages', badge: 'js', color: '#f7df1e' },
+  { name: 'Python', category: 'Languages', badge: 'py', color: '#3776ab' },
+  { name: 'Java', category: 'Languages', badge: 'java', color: '#007396' },
+  { name: 'C++', category: 'Languages', badge: 'cpp', color: '#00599c' },
+  { name: 'Go', category: 'Languages', badge: 'go', color: '#00add8' },
+  { name: 'Rust', category: 'Languages', badge: 'rust', color: '#dea584' },
+  { name: 'SQL', category: 'Languages', badge: 'sql', color: '#e38c00' },
+  { name: 'HTML5', category: 'Frontend', badge: 'html', color: '#e34f26' },
+  { name: 'CSS3', category: 'Frontend', badge: 'css', color: '#1572b6' },
+  { name: 'React', category: 'Frontend', badge: 'react', color: '#61dafb' },
+  { name: 'Next.js', category: 'Frontend', badge: 'next', color: '#000000' },
+  { name: 'Vue.js', category: 'Frontend', badge: 'vue', color: '#4fc08d' },
+  { name: 'Tailwind CSS', category: 'Frontend', badge: 'tailwind', color: '#06b6d4' },
+  { name: 'Redux Toolkit', category: 'Frontend', badge: 'redux', color: '#764abc' },
+  { name: 'Node.js', category: 'Backend', badge: 'node', color: '#339933' },
+  { name: 'Express.js', category: 'Backend', badge: 'express', color: '#000000' },
+  { name: 'FastAPI', category: 'Backend', badge: 'fastapi', color: '#009688' },
+  { name: 'Spring Boot', category: 'Backend', badge: 'spring', color: '#6db33f' },
+  { name: 'GraphQL', category: 'Backend', badge: 'graphql', color: '#e10098' },
+  { name: 'WebSockets', category: 'Backend', badge: 'ws', color: '#ff6422' },
+  { name: 'MongoDB', category: 'Databases', badge: 'mongo', color: '#47a248' },
+  { name: 'PostgreSQL', category: 'Databases', badge: 'postgres', color: '#4169e1' },
+  { name: 'MySQL', category: 'Databases', badge: 'mysql', color: '#4479a1' },
+  { name: 'Redis', category: 'Databases', badge: 'redis', color: '#dc382d' },
+  { name: 'Elasticsearch', category: 'Databases', badge: 'elastic', color: '#005571' },
+  { name: 'AWS', category: 'Cloud & DevOps', badge: 'aws', color: '#ff9900' },
+  { name: 'Google Cloud (GCP)', category: 'Cloud & DevOps', badge: 'gcp', color: '#4285f4' },
+  { name: 'Docker', category: 'Cloud & DevOps', badge: 'docker', color: '#2496ed' },
+  { name: 'Kubernetes', category: 'Cloud & DevOps', badge: 'k8s', color: '#326ce5' },
+  { name: 'Terraform', category: 'Cloud & DevOps', badge: 'tf', color: '#844fba' },
+  { name: 'GitHub Actions', category: 'Cloud & DevOps', badge: 'gha', color: '#2088ff' },
+  { name: 'Linux / Bash', category: 'Cloud & DevOps', badge: 'linux', color: '#fcc624' },
+  { name: 'Nginx', category: 'Cloud & DevOps', badge: 'nginx', color: '#009639' },
+  { name: 'Git', category: 'Tools', badge: 'git', color: '#f05032' },
+  { name: 'Kafka', category: 'Tools', badge: 'kafka', color: '#231f20' },
+  { name: 'PyTorch', category: 'AI & Data Science', badge: 'pytorch', color: '#ee4c2c' },
+  { name: 'TensorFlow', category: 'AI & Data Science', badge: 'tf', color: '#ff6f00' },
+  { name: 'Pandas', category: 'AI & Data Science', badge: 'pandas', color: '#150458' },
+  { name: 'NumPy', category: 'AI & Data Science', badge: 'numpy', color: '#013243' },
+];
+
+const getSkillLibraryHandler = async (req: Request, res: Response) => {
   try {
-    const testimonials = await Testimonial.find().sort({ order: 1 });
-    res.json({ success: true, data: testimonials });
+    const filter: Record<string, any> = {};
+    if (req.query.category && req.query.category !== 'All') {
+      filter.category = req.query.category;
+    }
+    let skills = await SkillLibrary.find(filter).sort({ name: 1 });
+    // Seed default if database collection is empty
+    if (skills.length === 0 && (!req.query.category || req.query.category === 'All')) {
+      await SkillLibrary.insertMany(DEFAULT_SKILL_LIBRARY);
+      skills = await SkillLibrary.find().sort({ name: 1 });
+    }
+    res.json({ success: true, data: skills });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch testimonials' });
+    res.status(500).json({ success: false, error: 'Failed to fetch skill library' });
+  }
+};
+
+app.get('/api/skilllibrary', getSkillLibraryHandler);
+app.get('/api/skilllibraries', getSkillLibraryHandler);
+
+app.post('/api/skilllibrary', async (req: Request, res: Response) => {
+  try {
+    const item = await SkillLibrary.create(req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Failed to create skill' });
   }
 });
 
-app.get('/api/testimonials/:id', async (req: Request, res: Response) => {
+app.put('/api/skilllibrary/:id', async (req: Request, res: Response) => {
   try {
-    const item = await Testimonial.findById(req.params.id);
-    if (!item) return res.status(404).json({ success: false, error: 'Testimonial not found' });
-    res.json({ success: true, data: item });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch testimonial' });
-  }
-});
-
-app.post('/api/testimonials', async (req: Request, res: Response) => {
-  try {
-    const newTestimonial = await Testimonial.create(req.body);
-    res.status(201).json({ success: true, data: newTestimonial });
-  } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to create testimonial' });
-  }
-});
-
-app.put('/api/testimonials/:id', async (req: Request, res: Response) => {
-  try {
-    const updated = await Testimonial.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ success: false, error: 'Testimonial not found' });
+    const updated = await SkillLibrary.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ success: false, error: 'Skill not found' });
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to update testimonial' });
+    res.status(400).json({ success: false, error: 'Failed to update skill' });
   }
 });
 
-app.delete('/api/testimonials/:id', async (req: Request, res: Response) => {
+app.delete('/api/skilllibrary/:id', async (req: Request, res: Response) => {
   try {
-    await Testimonial.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Testimonial deleted' });
+    await SkillLibrary.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Skill deleted' });
   } catch (error) {
-    res.status(400).json({ success: false, error: 'Failed to delete testimonial' });
+    res.status(400).json({ success: false, error: 'Failed to delete skill' });
   }
 });
 
@@ -804,6 +554,146 @@ app.delete('/api/subscribers/:id', async (req: Request, res: Response) => {
     res.json({ success: true, message: 'Subscriber deleted' });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to delete subscriber' });
+  }
+});
+
+// ==========================================
+// 9. Database Diagnostics & Backup Endpoints
+// ==========================================
+
+// Real-time Database Stats across all active collections (excluding testimonials)
+app.get('/api/stats', async (_req: Request, res: Response) => {
+  try {
+    const [
+      certCount,
+      projCount,
+      skillCatCount,
+      skillLibCount,
+      profileCount,
+      expCount,
+      inqCount,
+      subCount,
+    ] = await Promise.all([
+      Certificate.countDocuments(),
+      Project.countDocuments(),
+      SkillCategory.countDocuments(),
+      SkillLibrary.countDocuments(),
+      Profile.countDocuments(),
+      Experience.countDocuments(),
+      Inquiry.countDocuments(),
+      Subscriber.countDocuments(),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        certificates: certCount,
+        projects: projCount,
+        skillCategories: skillCatCount,
+        skillLibrary: skillLibCount,
+        profiles: profileCount,
+        experiences: expCount,
+        inquiries: inqCount,
+        subscribers: subCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch database statistics' });
+  }
+});
+
+// Full Database Backup Export as Single JSON File (All 7 active collections)
+app.get('/api/export-all', async (_req: Request, res: Response) => {
+  try {
+    const [
+      profiles,
+      skillcategories,
+      certificates,
+      projects,
+      experiences,
+      skilllibraries,
+      inquiries,
+      subscribers,
+    ] = await Promise.all([
+      Profile.find().lean(),
+      SkillCategory.find().lean(),
+      Certificate.find().lean(),
+      Project.find().lean(),
+      Experience.find().lean(),
+      SkillLibrary.find().lean(),
+      Inquiry.find().lean(),
+      Subscriber.find().lean(),
+    ]);
+
+    const backupData = {
+      exportTimestamp: new Date().toISOString(),
+      cluster: 'Cluster0 MongoDB Atlas',
+      collections: {
+        profiles,
+        skillcategories,
+        certificates,
+        projects,
+        experiences,
+        skilllibraries,
+        inquiries,
+        subscribers,
+      },
+      counts: {
+        profiles: profiles.length,
+        skillcategories: skillcategories.length,
+        certificates: certificates.length,
+        projects: projects.length,
+        experiences: experiences.length,
+        skilllibraries: skilllibraries.length,
+        inquiries: inquiries.length,
+        subscribers: subscribers.length,
+      },
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=portfolio-backup-${Date.now()}.json`);
+    res.json(backupData);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to export database backup', details: String(error) });
+  }
+});
+
+// Live Database Health Monitoring
+app.get('/api/status', async (_req: Request, res: Response) => {
+  const startTime = Date.now();
+  const readyState = mongoose.connection.readyState;
+  let latencyMs = -1;
+  let isHealthy = readyState === 1;
+
+  if (isHealthy && mongoose.connection.db) {
+    try {
+      await mongoose.connection.db.admin().ping();
+      latencyMs = Date.now() - startTime;
+    } catch {
+      isHealthy = false;
+    }
+  }
+
+  res.json({
+    status: isHealthy ? 'healthy' : readyState === 2 ? 'connecting' : 'disconnected',
+    readyState,
+    latencyMs,
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.name || 'portfolio',
+  });
+});
+
+// Force Reconnect
+app.post('/api/reconnect', async (_req: Request, res: Response) => {
+  try {
+    await connectDB();
+    res.json({
+      success: true,
+      readyState: mongoose.connection.readyState,
+      message: mongoose.connection.readyState === 1 ? 'Successfully connected to MongoDB cluster' : 'Reconnecting...',
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: String(error) });
   }
 });
 

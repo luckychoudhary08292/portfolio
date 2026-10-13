@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { SkillsSection } from './components/SkillsSection';
@@ -6,20 +6,53 @@ import { PortfolioSection } from './components/PortfolioSection';
 import { CertificatesSection } from './components/CertificatesSection';
 import { ExperienceSection } from './components/ExperienceSection';
 import { WhyHireMeSection } from './components/WhyHireMeSection';
-import { TestimonialsSection } from './components/TestimonialsSection';
 import { DiscussionBanner } from './components/DiscussionBanner';
 import { FooterSection } from './components/FooterSection';
 import { HireModal } from './components/HireModal';
-import { ProjectModal } from './components/ProjectModal';
-import { CertificateModal } from './components/CertificateModal';
-import { ProjectItem, CertificateItem, SkillCategoryItem } from './data/portfolioData';
+import { ProjectDocPage } from './components/ProjectDocPage';
+import { SkillCategoryItem, ProjectItem } from './data/portfolioData';
 import { PortfolioProvider, usePortfolio } from './context/PortfolioContext';
 
 function PortfolioMain() {
   const { projects } = usePortfolio();
   const [isHireModalOpen, setIsHireModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null);
-  const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
+  const [selectedDocProject, setSelectedDocProject] = useState<ProjectItem | null>(null);
+
+  // Sync with browser back/forward buttons and hash navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#project-doc-')) {
+        const projectId = hash.replace('#project-doc-', '');
+        const found = projects.find((p) => (p._id || p.id) === projectId || p.title === decodeURIComponent(projectId));
+        if (found) {
+          setSelectedDocProject(found);
+          return;
+        }
+      }
+      if (selectedDocProject && !hash.startsWith('#project-doc-')) {
+        setSelectedDocProject(null);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    // Initial check on load
+    handleHashChange();
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [projects]);
+
+  const handleOpenDoc = (project: ProjectItem) => {
+    setSelectedDocProject(project);
+    const identifier = project._id || project.id || encodeURIComponent(project.title);
+    window.location.hash = `project-doc-${identifier}`;
+  };
+
+  const handleCloseDoc = () => {
+    setSelectedDocProject(null);
+    if (window.location.hash.startsWith('#project-doc-')) {
+      window.history.pushState(null, '', window.location.pathname + '#projects');
+    }
+  };
 
   const handleSelectSkillCategory = (_cat: SkillCategoryItem) => {
     const el = document.getElementById('projects');
@@ -30,6 +63,26 @@ function PortfolioMain() {
     const el = document.getElementById('projects');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // If user opens a project doc page, render full screen page
+  if (selectedDocProject) {
+    return (
+      <>
+        <ProjectDocPage
+          project={selectedDocProject}
+          allProjects={projects}
+          onSelectProject={(proj) => {
+            setSelectedDocProject(proj);
+            const identifier = proj._id || proj.id || encodeURIComponent(proj.title);
+            window.location.hash = `project-doc-${identifier}`;
+          }}
+          onBack={handleCloseDoc}
+          onOpenHireModal={() => setIsHireModalOpen(true)}
+        />
+        <HireModal isOpen={isHireModalOpen} onClose={() => setIsHireModalOpen(false)} />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-[#ff6422] selection:text-white antialiased">
@@ -43,13 +96,13 @@ function PortfolioMain() {
           onExploreProjects={handleExploreProjects}
         />
 
-        {/* 2. Technical Skills Section (replaces My Services) */}
+        {/* 2. Technical Skills Section */}
         <SkillsSection onSelectSkillCategory={handleSelectSkillCategory} />
 
         {/* 3. Featured Software Engineering Projects */}
-        <PortfolioSection onSelectProject={(project) => setSelectedProject(project)} />
+        <PortfolioSection onOpenProjectDoc={handleOpenDoc} />
 
-        {/* 4. Verified Licenses & Certificates Section (Horizontal Scrollable + Lightbox) */}
+        {/* 4. Verified Licenses & Certificates Section */}
         <CertificatesSection />
 
         {/* 5. Education & Internship Experience Timeline */}
@@ -58,10 +111,7 @@ function PortfolioMain() {
         {/* 6. Why Hire Me? Student Stats & Pointing Portrait */}
         <WhyHireMeSection onOpenHireModal={() => setIsHireModalOpen(true)} />
 
-        {/* 7. Endorsements & Recommendations */}
-        <TestimonialsSection />
-
-        {/* 8. Recruiter Connect & Technical Marquee Ticker */}
+        {/* 7. Recruiter Connect & Technical Marquee Ticker */}
         <DiscussionBanner />
 
         {/* 9. Let's Connect & Footer */}
@@ -72,15 +122,6 @@ function PortfolioMain() {
       <HireModal
         isOpen={isHireModalOpen}
         onClose={() => setIsHireModalOpen(false)}
-      />
-
-      <ProjectModal
-        project={selectedProject}
-        onClose={() => setSelectedProject(null)}
-        onOpenHireModal={() => {
-          setSelectedProject(null);
-          setIsHireModalOpen(true);
-        }}
       />
     </div>
   );

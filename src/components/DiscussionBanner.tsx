@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { usePortfolio } from '../context/PortfolioContext';
 
 export const DiscussionBanner: React.FC = () => {
-  const { submitSubscriber } = usePortfolio();
+  const { profile, submitSubscriber } = usePortfolio();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -84,26 +84,30 @@ export const DiscussionBanner: React.FC = () => {
               className="mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm text-emerald-600 font-semibold bg-emerald-50 px-4 py-1.5 rounded-full"
             >
               <CheckCircle2 size={16} />
-              <span>Thank you! Lucky will review and send his resume & contact details.</span>
+              <span>Thank you! We will review and send the resume & contact details.</span>
             </motion.div>
           )}
         </motion.form>
 
         {/* Badges Row */}
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm font-semibold text-slate-800">
-          <div className="flex items-center gap-1.5">
-            <Star size={16} className="text-[#ff6422] fill-[#ff6422]" />
-            <span>450+ LeetCode Solved</span>
-          </div>
+          {profile.problemsSolved && (
+            <div className="flex items-center gap-1.5">
+              <Star size={16} className="text-[#ff6422] fill-[#ff6422]" />
+              <span>{profile.problemsSolved} DSA Solved</span>
+            </div>
+          )}
 
-          <div className="flex items-center gap-1.5">
-            <Trophy size={16} className="text-slate-800" />
-            <span>National Hackathon Winner</span>
-          </div>
+          {profile.projectsCompleted && (
+            <div className="flex items-center gap-1.5">
+              <Trophy size={16} className="text-slate-800" />
+              <span>{profile.projectsCompleted} Projects Built</span>
+            </div>
+          )}
 
           <div className="flex items-center gap-1.5">
             <ShieldCheck size={16} className="text-slate-800" />
-            <span>Available for Internships & Full-Time</span>
+            <span>Available for Opportunities</span>
           </div>
         </div>
       </div>

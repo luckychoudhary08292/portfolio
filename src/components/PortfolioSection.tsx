@@ -3,22 +3,27 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
+  FileText,
   Github,
-  ExternalLink,
-  Layers,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { projectCategories, ProjectItem } from '../data/portfolioData';
+import { ProjectItem } from '../data/portfolioData';
 import { usePortfolio } from '../context/PortfolioContext';
 
 interface PortfolioSectionProps {
-  onSelectProject: (project: ProjectItem) => void;
+  onOpenProjectDoc?: (project: ProjectItem) => void;
 }
 
-export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onSelectProject }) => {
+export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjectDoc }) => {
   const { projects } = usePortfolio();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>('All');
+
+  // Dynamically compute category filters from projects in database
+  const dynamicCategories: string[] = [
+    'All',
+    ...Array.from(new Set(projects.map((p) => p.category || p.tag).filter((c): c is string => Boolean(c)))),
+  ];
 
   const filteredProjects = projects.filter(
     (p) =>
@@ -68,7 +73,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onSelectProj
 
         {/* Filter Categories / Tags */}
         <div className="flex flex-wrap items-center gap-2 mb-8">
-          {projectCategories.map((cat) => {
+          {dynamicCategories.map((cat) => {
             const isSelected = activeCategory === cat;
             return (
               <button
@@ -86,7 +91,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onSelectProj
           })}
         </div>
 
-        {/* Horizontal Scrollable Projects Track - stretches close to walls */}
+        {/* Horizontal Scrollable Projects Track */}
         <div
           ref={scrollRef}
           className="flex gap-6 overflow-x-auto scroll-smooth pb-6 pt-2 snap-x snap-mandatory select-none"
@@ -99,107 +104,86 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onSelectProj
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              onClick={() => onSelectProject(item)}
-              className="w-[320px] sm:w-[420px] lg:w-[460px] shrink-0 snap-start bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between group cursor-pointer"
+              className="w-[340px] sm:w-[440px] lg:w-[480px] shrink-0 snap-start bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group"
             >
-              <div>
-                {/* 1. Image Frame (Above Title) */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-950">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/src/assets/images/service_smart_home_mockup_1791610793006.jpg';
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-500 text-xs font-mono">
-                      {item.title}
-                    </div>
-                  )}
-
-                  {/* Gradient Scrim */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/30 pointer-events-none" />
-
-                  {/* Top Category Badge */}
-                  <div className="absolute top-3.5 left-3.5 z-10">
-                    <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white font-semibold text-xs border border-white/20">
-                      {item.category}
-                    </span>
+              {/* Large Well-Fitted Image with Top Badges, Action Icons & Embedded App Title */}
+              <div className="relative h-[280px] sm:h-[340px] md:h-[360px] w-full overflow-hidden bg-slate-950 shrink-0">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80';
+                    }}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-400 text-sm font-semibold">
+                    {item.title}
                   </div>
+                )}
 
-                  {/* Circular Arrow Sign to Access Website or Project */}
+                {/* Dark gradient overlay so that icons at top and title at bottom are crystal clear */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/60 pointer-events-none" />
+
+                {/* Top Left Corner: Category / Tag Badge */}
+                <div className="absolute top-4 left-4 z-10">
+                  <span className="px-3.5 py-1.5 rounded-full bg-black/65 backdrop-blur-md text-[#ff6422] font-bold text-xs border border-[#ff6422]/30 shadow-md tracking-wide uppercase">
+                    {item.category || item.tag || 'Project'}
+                  </span>
+                </div>
+
+                {/* Top Right Corner: Doc Logo + GitHub Logo + Arrow Logo */}
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                  {/* Documentation Logo next to GitHub logo: opens dynamic full-screen project doc page */}
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const targetUrl = item.liveUrl && item.liveUrl !== '#' ? item.liveUrl : item.githubUrl;
-                      if (targetUrl && targetUrl !== '#') {
-                        window.open(targetUrl, '_blank', 'noopener,noreferrer');
-                      } else {
-                        onSelectProject(item);
+                      if (onOpenProjectDoc) {
+                        onOpenProjectDoc(item);
                       }
                     }}
-                    aria-label={`Access ${item.title}`}
-                    title="Access Website or Project"
-                    className="absolute bottom-3.5 right-3.5 z-20 w-12 h-12 rounded-full bg-[#16171a]/90 backdrop-blur-md border border-white/20 text-white hover:bg-[#ff6422] hover:border-[#ff6422] flex items-center justify-center transition-all duration-300 shadow-xl hover:scale-110 cursor-pointer active:scale-95 group/arrow"
+                    title="View Project Details & Documentation"
+                    aria-label={`View detailed documentation for ${item.title}`}
+                    className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md border border-white/25 text-white hover:bg-[#ff6422] hover:border-[#ff6422] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/doc"
                   >
-                    <ArrowUpRight size={22} className="transition-transform group-hover/arrow:translate-x-0.5 group-hover/arrow:-translate-y-0.5" />
+                    <FileText size={18} className="text-slate-100 group-hover/doc:text-white transition-colors" />
                   </button>
 
-                  </div>
-
-                {/* 2. Details (Title & Tech Stack strictly below image) */}
-                <div className="p-5 sm:p-6">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-[#ff6422] transition-colors leading-snug mb-2">
-                    {item.title}
-                  </h3>
-
-                  <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed mb-4">
-                    {item.description}
-                  </p>
-
-                  {/* Tech Stack Tags */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {(item.techStack || []).slice(0, 4).map((tech, tIdx) => (
-                      <span
-                        key={tIdx}
-                        className="text-[11px] px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                    {(item.techStack || []).length > 4 && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-md bg-orange-50 text-[#ff6422] font-semibold">
-                        +{(item.techStack || []).length - 4}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Bottom Row: GitHub & Access Website / Modal */}
-              <div className="px-5 sm:px-6 pb-5 pt-3 border-t border-slate-100 flex items-center justify-end text-xs">
-                <div className="flex items-center gap-2">
+                  {/* GitHub Logo Redirect */}
                   <a
                     href={item.githubUrl || 'https://github.com'}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="p-2 rounded-full hover:bg-slate-100 text-slate-700 hover:text-black transition-colors"
                     title="View GitHub Repository"
+                    aria-label={`View GitHub repository for ${item.title}`}
+                    className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-md border border-white/25 text-white hover:bg-[#ff6422] hover:border-[#ff6422] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/gh"
                   >
-                    <Github size={16} />
+                    <Github size={18} className="text-slate-100 group-hover/gh:text-white transition-colors" />
                   </a>
 
-                  <button
-                    onClick={() => onSelectProject(item)}
-                    className="inline-flex items-center gap-1 font-bold text-[#ff6422] hover:underline cursor-pointer"
+                  {/* Arrow Logo: Project Deployment Access */}
+                  <a
+                    href={item.liveUrl && item.liveUrl !== '#' ? item.liveUrl : (item.githubUrl || 'https://github.com')}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Access Live Deployment"
+                    aria-label={`Access live deployment for ${item.title}`}
+                    className="w-10 h-10 rounded-full bg-[#ff6422] backdrop-blur-md border border-[#ff6422] text-white hover:bg-[#ff7b42] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/arrow"
                   >
-                    <span>Access Project</span>
-                    <ArrowUpRight size={14} />
-                  </button>
+                    <ArrowUpRight size={20} className="transition-transform group-hover/arrow:translate-x-0.5 group-hover/arrow:-translate-y-0.5" />
+                  </a>
+                </div>
+
+                {/* App Name inside the image right above the bottom line */}
+                <div className="absolute bottom-4 left-5 right-5 z-10 pointer-events-none">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight drop-shadow-md group-hover:text-[#ff6422] transition-colors duration-200 line-clamp-1">
+                    {item.title}
+                  </h3>
                 </div>
               </div>
             </motion.div>

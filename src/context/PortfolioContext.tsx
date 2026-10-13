@@ -4,36 +4,15 @@ import {
   CertificateItem,
   ExperienceItem,
   ProjectItem,
-  TestimonialItem,
+  ProfileData,
   defaultProfile,
   defaultSkills,
   defaultCertificates,
   defaultExperiences,
   defaultProjects,
-  defaultTestimonials,
 } from '../data/portfolioData';
 
-export interface ProfileData {
-  name: string;
-  title: string;
-  heroQuote: string;
-  experienceYears: string;
-  projectsCompleted: string;
-  problemsSolved: string;
-  gpa: string;
-  degree: string;
-  university: string;
-  whyHireMeBio: string;
-  email: string;
-  phone: string;
-  website: string;
-  github: string;
-  linkedin: string;
-  leetcode: string;
-  resumeUrl: string;
-  heroImage: string;
-  whyHireMeImage: string;
-}
+export type { ProfileData };
 
 interface PortfolioContextType {
   profile: ProfileData;
@@ -41,7 +20,6 @@ interface PortfolioContextType {
   certificates: CertificateItem[];
   experiences: ExperienceItem[];
   projects: ProjectItem[];
-  testimonials: TestimonialItem[];
   isLiveConnected: boolean;
   isLoading: boolean;
   refetch: () => Promise<void>;
@@ -63,7 +41,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [certificates, setCertificates] = useState<CertificateItem[]>(defaultCertificates);
   const [experiences, setExperiences] = useState<ExperienceItem[]>(defaultExperiences);
   const [projects, setProjects] = useState<ProjectItem[]>(defaultProjects);
-  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(defaultTestimonials);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -80,47 +57,42 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             certificates: c,
             experiences: e,
             projects: pr,
-            testimonials: t,
           } = json.data;
 
           if (p) {
-            setProfile((prev) => ({
-              ...prev,
-              ...p,
-              name: p.name || prev.name,
-              title: p.title || prev.title,
-              heroQuote: p.heroQuote || prev.heroQuote,
-              experienceYears: p.experienceYears || prev.experienceYears,
-              projectsCompleted: p.projectsCompleted || prev.projectsCompleted,
-              problemsSolved: p.problemsSolved || prev.problemsSolved,
-              gpa: p.gpa || prev.gpa,
-              degree: p.degree || prev.degree,
-              university: p.university || prev.university,
-              whyHireMeBio: p.whyHireMeBio || prev.whyHireMeBio,
-              email: p.email || prev.email,
-              phone: p.phone || prev.phone,
-              website: p.website || prev.website,
-              github: p.github || prev.github,
-              linkedin: p.linkedin || prev.linkedin,
-              leetcode: p.leetcode || prev.leetcode,
-              heroImage: p.heroImage || prev.heroImage,
-              whyHireMeImage: p.whyHireMeImage || prev.whyHireMeImage,
-            }));
+            setProfile({
+              name: p.name || '',
+              title: p.title || '',
+              heroQuote: p.heroQuote || '',
+              experienceYears: p.experienceYears || '',
+              projectsCompleted: p.projectsCompleted || '',
+              problemsSolved: p.problemsSolved || '',
+              gpa: p.gpa || '',
+              degree: p.degree || '',
+              university: p.university || '',
+              whyHireMeBio: p.whyHireMeBio || '',
+              email: p.email || '',
+              phone: p.phone || '',
+              website: p.website || '',
+              github: p.github || '',
+              linkedin: p.linkedin || '',
+              leetcode: p.leetcode || '',
+              resumeUrl: p.resumeUrl || '',
+              heroImage: p.heroImage || '',
+              whyHireMeImage: p.whyHireMeImage || '',
+            });
           }
-          if (Array.isArray(s) && s.length > 0) {
+          if (Array.isArray(s)) {
             setSkills(s.map((item: any) => ({ ...item, id: item._id || item.id })));
           }
-          if (Array.isArray(c) && c.length > 0) {
+          if (Array.isArray(c)) {
             setCertificates(c.map((item: any) => ({ ...item, id: item._id || item.id })));
           }
-          if (Array.isArray(e) && e.length > 0) {
+          if (Array.isArray(e)) {
             setExperiences(e.map((item: any) => ({ ...item, id: item._id || item.id })));
           }
-          if (Array.isArray(pr) && pr.length > 0) {
+          if (Array.isArray(pr)) {
             setProjects(pr.map((item: any) => ({ ...item, id: item._id || item.id })));
-          }
-          if (Array.isArray(t) && t.length > 0) {
-            setTestimonials(t.map((item: any) => ({ ...item, id: item._id || item.id })));
           }
           setIsLiveConnected(true);
         }
@@ -138,15 +110,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     fetchPortfolioData();
 
-    // Auto-retry if not connected yet
+    // Polling interval to auto-sync with Admin Panel updates
     const interval = setInterval(() => {
-      if (!isLiveConnected) {
-        fetchPortfolioData();
-      }
-    }, 4000);
+      fetchPortfolioData();
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isLiveConnected]);
+  }, []);
 
   const submitInquiry = async (data: {
     name: string;
@@ -188,7 +158,6 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         certificates,
         experiences,
         projects,
-        testimonials,
         isLiveConnected,
         isLoading,
         refetch: fetchPortfolioData,

@@ -90,13 +90,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenHireModal }) => {
         <button
           onClick={() => scrollTo('home')}
           className="flex items-center gap-2 group cursor-pointer px-3 py-1"
-          aria-label="Lucky Choudhary Portfolio"
+          aria-label={`${profile.name || 'Developer'} Portfolio`}
         >
-          <div className="w-8 h-8 rounded-full bg-[#ff6422] flex items-center justify-center text-white font-bold text-xs tracking-tighter shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform">
-            LC
+          <div className="w-8 h-8 rounded-full bg-[#ff6422] flex items-center justify-center text-white font-bold text-xs tracking-tighter shadow-md shadow-orange-500/30 group-hover:scale-105 transition-transform uppercase">
+            {profile.name ? profile.name.slice(0, 2) : 'LC'}
           </div>
-          <span className="font-extrabold text-base sm:text-lg tracking-wider text-white group-hover:text-orange-400 transition-colors">
-            LUCKY
+          <span className="font-extrabold text-base sm:text-lg tracking-wider text-white group-hover:text-orange-400 transition-colors uppercase">
+            {profile.name ? profile.name.split(' ')[0] : 'PORTFOLIO'}
           </span>
         </button>
 
