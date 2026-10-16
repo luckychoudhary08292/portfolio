@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Star, Trophy, ShieldCheck, CheckCircle2, Code2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { SocialLinks } from './SocialLinks';
 
 export const DiscussionBanner: React.FC = () => {
   const { profile, submitSubscriber } = usePortfolio();
@@ -109,6 +110,11 @@ export const DiscussionBanner: React.FC = () => {
             <ShieldCheck size={16} className="text-slate-800" />
             <span>Available for Opportunities</span>
           </div>
+        </div>
+
+        {/* Developer Profiles: GitHub, LinkedIn, LeetCode, Gmail, Twitter */}
+        <div className="mt-8 flex justify-center">
+          <SocialLinks variant="hero" />
         </div>
       </div>
 

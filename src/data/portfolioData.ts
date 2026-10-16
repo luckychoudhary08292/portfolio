@@ -103,6 +103,7 @@ export interface ProfileData {
   github: string;
   linkedin: string;
   leetcode: string;
+  twitter?: string;
   resumeUrl: string;
   heroImage: string;
   whyHireMeImage: string;
@@ -126,6 +127,7 @@ export const defaultProfile: ProfileData = {
   github: '',
   linkedin: '',
   leetcode: '',
+  twitter: '',
   resumeUrl: '',
   heroImage: '',
   whyHireMeImage: '',

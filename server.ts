@@ -108,10 +108,21 @@ app.get('/api/portfolio', async (_req: Request, res: Response) => {
       };
     });
 
+    const normalizedProfile = profile
+      ? {
+          ...profile,
+          github: profile.github || 'https://github.com/luckychoudhary',
+          linkedin: profile.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
+          leetcode: profile.leetcode || 'https://leetcode.com/luckychoudhary',
+          twitter: profile.twitter || 'https://twitter.com/luckychoudhary',
+          email: profile.email || 'luckychoudhary08292@gmail.com',
+        }
+      : null;
+
     res.json({
       success: true,
       data: {
-        profile,
+        profile: normalizedProfile,
         skills,
         certificates,
         projects,
@@ -138,7 +149,19 @@ const getProfileHandler = async (_req: Request, res: Response) => {
 
 const updateProfileHandler = async (req: Request, res: Response) => {
   try {
-    const updated = await Profile.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+    const updatePayload = { ...req.body };
+    // Support common aliases from different admin panels
+    if (updatePayload.gmail && !updatePayload.email) {
+      updatePayload.email = updatePayload.gmail;
+    }
+    if (updatePayload.linkdin && !updatePayload.linkedin) {
+      updatePayload.linkedin = updatePayload.linkdin;
+    }
+    if (updatePayload.x && !updatePayload.twitter) {
+      updatePayload.twitter = updatePayload.x;
+    }
+
+    const updated = await Profile.findOneAndUpdate({}, updatePayload, { new: true, upsert: true });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update profile' });

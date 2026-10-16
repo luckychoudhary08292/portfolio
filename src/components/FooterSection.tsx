@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { SocialLinks } from './SocialLinks';
 
 interface FooterSectionProps {
   onOpenHireModal: () => void;
@@ -87,51 +88,9 @@ export const FooterSection: React.FC<FooterSectionProps> = ({ onOpenHireModal })
               </p>
             </div>
 
-            {/* Social Icons (GitHub, LinkedIn, LeetCode, Twitter, Email) */}
-            <div className="flex items-center gap-3">
-              <a
-                href={profile.github}
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#ff6422] text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-                aria-label="GitHub"
-              >
-                <Github size={16} />
-              </a>
-              <a
-                href={profile.linkedin}
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#ff6422] text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin size={16} />
-              </a>
-              <a
-                href={profile.leetcode}
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#ff6422] text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-                aria-label="LeetCode"
-              >
-                <Code2 size={16} />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#ff6422] text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-                aria-label="Twitter"
-              >
-                <Twitter size={16} />
-              </a>
-              <a
-                href={`mailto:${profile.email}`}
-                className="w-9 h-9 rounded-full bg-white/5 hover:bg-[#ff6422] text-gray-300 hover:text-white flex items-center justify-center transition-colors"
-                aria-label="Email"
-              >
-                <Mail size={16} />
-              </a>
+            {/* Social Icons (GitHub, LinkedIn, LeetCode, Gmail, Twitter) - Fetched from Database / Admin */}
+            <div className="mt-4">
+              <SocialLinks variant="footer" />
             </div>
           </div>
 

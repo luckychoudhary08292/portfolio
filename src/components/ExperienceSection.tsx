@@ -111,11 +111,11 @@ export const ExperienceSection: React.FC = () => {
     return [...rawExperiences].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [rawExperiences]);
 
-  // Highway Geometry Constants (Single Continuous SVG Coordinate Plane)
-  const VIEW_LEFT = -40;
-  const VIEW_WIDTH = 980; // from -40 to 940
-  const LEFT_X = 110;
-  const RIGHT_X = 790;
+  // Highway Geometry Constants (Single Continuous SVG Coordinate Plane - Widened Horizontal Span)
+  const VIEW_LEFT = -50;
+  const VIEW_WIDTH = 1200; // from -50 to 1150 (expanded horizontal span)
+  const LEFT_X = 130;
+  const RIGHT_X = 990;
   const PITCH = 280; // Vertical distance between rows (giving 230px clear space for cards)
   const START_Y = 85;
 
@@ -130,7 +130,7 @@ export const ExperienceSection: React.FC = () => {
     const dottedPaths: string[] = [];
     const chevrons: { x: number; y: number; dir: 'R' | 'L' }[] = [];
 
-    chevrons.push({ x: 450, y: START_Y, dir: 'R' });
+    chevrons.push({ x: 560, y: START_Y, dir: 'R' });
 
     for (let r = 0; r < totalRows - 1; r++) {
       const curY = START_Y + r * PITCH;
@@ -143,7 +143,7 @@ export const ExperienceSection: React.FC = () => {
 
         // Outer dotted decorative arc on right
         dottedPaths.push(`M ${RIGHT_X} ${curY - 24} A ${rRadius + 24} ${rRadius + 24} 0 0 1 ${RIGHT_X} ${nextY + 24}`);
-        chevrons.push({ x: 450, y: nextY, dir: 'L' });
+        chevrons.push({ x: 560, y: nextY, dir: 'L' });
       } else {
         // Odd row: Right -> Left. Turn on the left side downwards (Counter-Clockwise: sweep=0)
         d += ` A ${rRadius} ${rRadius} 0 0 0 ${LEFT_X} ${nextY}`;
@@ -151,7 +151,7 @@ export const ExperienceSection: React.FC = () => {
 
         // Outer dotted decorative arc on left
         dottedPaths.push(`M ${LEFT_X} ${curY - 24} A ${rRadius + 24} ${rRadius + 24} 0 0 0 ${LEFT_X} ${nextY + 24}`);
-        chevrons.push({ x: 450, y: nextY, dir: 'R' });
+        chevrons.push({ x: 560, y: nextY, dir: 'R' });
       }
     }
 
@@ -161,11 +161,11 @@ export const ExperienceSection: React.FC = () => {
     const itemsInLastRow = totalItems % 2 === 1 ? 1 : 2;
     const isLastRowLtoR = lastRowIndex % 2 === 0;
 
-    let fX = 840;
+    let fX = 1060;
     if (isLastRowLtoR) {
-      fX = itemsInLastRow === 1 ? 620 : 840;
+      fX = itemsInLastRow === 1 ? 780 : 1060;
     } else {
-      fX = itemsInLastRow === 1 ? 280 : 60;
+      fX = itemsInLastRow === 1 ? 340 : 60;
     }
 
     return {
@@ -184,12 +184,12 @@ export const ExperienceSection: React.FC = () => {
       const isLtoR = rowIndex % 2 === 0;
 
       const y = START_Y + rowIndex * PITCH;
-      let x = 280;
+      let x = 340;
 
       if (isLtoR) {
-        x = colIndex === 0 ? 280 : 620;
+        x = colIndex === 0 ? 340 : 780;
       } else {
-        x = colIndex === 0 ? 620 : 280;
+        x = colIndex === 0 ? 780 : 340;
       }
 
       const color = MILESTONE_COLORS[idx % MILESTONE_COLORS.length];
@@ -240,8 +240,9 @@ export const ExperienceSection: React.FC = () => {
             DESKTOP & TABLET: SINGLE CONTINUOUS VECTOR ROADMAP
             - 100% UNBROKEN road (Zero seams, zero misalignments)
             - ZERO card overlapping (Ample vertical breathing room)
+            - Expansive horizontal layout filling full available screen width
             ============================================================ */}
-        <div className="hidden md:block relative max-w-5xl mx-auto">
+        <div className="hidden md:block relative w-full max-w-[98%] xl:max-w-[1420px] 2xl:max-w-[1620px] mx-auto">
           <div
             className="relative w-full mx-auto"
             style={{ minHeight: `${totalHeight}px` }}
@@ -361,25 +362,28 @@ export const ExperienceSection: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Content Card (Stationed below the road with dedicated vertical space - NO overlapping) */}
+                {/* Content Card (Dynamically sized to fit exact content - no unnecessary empty space) */}
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.35, delay: idx * 0.08 }}
-                  className="absolute z-20 w-[260px] sm:w-[290px] text-center"
+                  className="absolute z-20 flex flex-col items-center text-center w-[270px] sm:w-[300px] lg:w-[320px]"
                   style={{
                     left: `${((x - VIEW_LEFT) / VIEW_WIDTH) * 100}%`,
                     top: `${(cardY / totalHeight) * 100}%`,
                     transform: 'translate(-50%, 0)',
                   }}
                 >
-                  <div className="relative bg-white/98 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 hover:border-slate-300">
-                    {/* Tiny triangular pointer pointing towards the checkpoint pin */}
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-200/90 rotate-45" />
+                  <div
+                    className="relative w-full bg-white p-4 rounded-2xl border border-slate-200/90 shadow-md hover:shadow-xl transition-all duration-300 hover:border-slate-300"
+                    style={{ borderTop: `3.5px solid ${color.border}` }}
+                  >
+                    {/* Triangular pointer pointing towards the checkpoint pin */}
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white border-t border-l border-slate-200/90 rotate-45" />
 
                     {/* Date / Duration Badge */}
-                    <div className="flex items-center justify-center gap-1.5 mb-1.5 relative z-10">
+                    <div className="flex items-center justify-center gap-1.5 mb-1 relative z-10">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-800">
                         <Calendar size={11} className="text-[#ff6422]" />
                         <span>{item.date || item.period}</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { SocialLinks } from './SocialLinks';
 
 interface NavbarProps {
   onOpenHireModal: () => void;
@@ -210,6 +211,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenHireModal }) => {
           >
             Contact
           </button>
+
+          {/* Mobile Social Links Dock */}
+          <div className="pt-3 pb-1 border-t border-white/10 flex justify-center">
+            <SocialLinks variant="footer" />
+          </div>
         </div>
       )}
     </header>
