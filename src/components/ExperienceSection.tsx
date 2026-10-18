@@ -2,9 +2,6 @@ import React, { useMemo } from 'react';
 import {
   MapPin,
   Calendar,
-  Compass,
-  ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -224,10 +221,6 @@ export const ExperienceSection: React.FC = () => {
       <div className="w-full max-w-[96%] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12 sm:mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-lime-100/70 border border-lime-200 text-lime-800 text-xs font-semibold uppercase tracking-wider mb-2.5">
-            <Compass size={13} className="text-lime-700" />
-            <span>Interactive Highway Road Map</span>
-          </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
             Education & <span className="text-[#ff6422]">Experience Route</span>
           </h2>
@@ -539,13 +532,7 @@ export const ExperienceSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Route Legend */}
-        <div className="mt-14 sm:mt-18 text-center">
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-xs">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Dynamic Route: Expands seamlessly as new education or experience items are added</span>
-          </div>
-        </div>
+
       </div>
     </section>
   );
