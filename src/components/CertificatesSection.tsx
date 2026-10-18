@@ -501,6 +501,8 @@ export const CertificatesSection: React.FC = () => {
                         <img
                           src={cert.image}
                           alt={cert.title}
+                          loading="lazy"
+                          decoding="async"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}

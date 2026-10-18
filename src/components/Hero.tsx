@@ -91,6 +91,8 @@ export const Hero: React.FC<HeroProps> = ({ onOpenHireModal, onExploreProjects }
                   transition={{ duration: 0.7 }}
                   src={profile.heroImage}
                   alt={`${profile.name || 'Developer'} - ${profile.title || 'Portfolio'}`}
+                  loading="eager"
+                  decoding="async"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}

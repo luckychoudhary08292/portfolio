@@ -270,6 +270,8 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
                       <img
                         src={item.image}
                         alt={item.title}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src =
                             'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80';

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import compression from 'compression';
 import {
   Profile,
   SkillCategory,
@@ -15,13 +16,16 @@ import {
   Subscriber,
 } from './src/server/models.ts';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+// Enable HTTP response compression (gzip/deflate) to drastically speed up network transfers
+app.use(compression());
 
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
@@ -37,24 +41,41 @@ app.use((_req, res, next) => {
   next();
 });
 
-const rawUri =
-  process.env.MONGODB_URI ||
-  'mongodb+srv://portfolio08292:portfolio136366@cluster0.xqhmhxd.mongodb.net/portfolio?retryWrites=true&w=majority&appName=Cluster0';
-const MONGODB_URI = rawUri.trim().replace(/^["']|["']$/g, '');
+// Lightweight health check & ping endpoint (supports keep-alive monitors & Render uptime)
+app.get(['/health', '/api/ping'], (_req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store');
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    dbReadyState: mongoose.connection.readyState,
+    cached: Boolean(portfolioCache),
+  });
+});
 
 let isConnecting = false;
 
 async function connectDB() {
+  const currentUri = (process.env.MONGODB_URI || '').trim().replace(/^["']+|["']+$/g, '');
+  if (!currentUri) {
+    console.warn('⚠️ MONGODB_URI is not set in environment variables. Database connection skipped.');
+    return;
+  }
   if (mongoose.connection.readyState === 1) return;
   if (isConnecting) return;
   try {
     isConnecting = true;
-    console.log('Connecting to MongoDB at:', MONGODB_URI.replace(/:[^:@]+@/, ':***@'));
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000,
+    console.log('Connecting to MongoDB at:', currentUri.replace(/:[^:@]+@/, ':***@'));
+    await mongoose.connect(currentUri, {
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
     });
     console.log('✅ Connected to MongoDB successfully!');
+    // Pre-warm portfolio cache asynchronously immediately after DB connects
+    warmPortfolioCache();
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error);
   } finally {
@@ -62,75 +83,156 @@ async function connectDB() {
   }
 }
 
-// Seeding removed: Database collections are managed dynamically via MongoDB Atlas and Admin Panel.
+// ==========================================
+// MULTI-TIER IN-MEMORY CACHE ENGINE
+// ==========================================
+interface PortfolioCacheStore {
+  data: any;
+  cachedAt: number;
+  etag: string;
+}
+
+let portfolioCache: PortfolioCacheStore | null = null;
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes fresh window
+let isRefreshingCache = false;
+
+async function fetchFreshPortfolioData() {
+  if (mongoose.connection.readyState !== 1) {
+    await connectDB();
+  }
+
+  const [profile, skills, certificates, projects, experiences] =
+    await Promise.all([
+      Profile.findOne().lean().exec(),
+      SkillCategory.find().sort({ order: 1 }).lean().exec(),
+      Certificate.find().sort({ order: 1 }).lean().exec(),
+      Project.find().sort({ order: 1 }).lean().exec(),
+      Experience.find().sort({ order: 1 }).lean().exec(),
+    ]);
+
+  const normalizedExperiences = (experiences || []).map((exp: any) => {
+    const title = exp.title || exp.role || '';
+    const subtitle = exp.subtitle || exp.company || '';
+    const date = exp.date || exp.period || '';
+    const place = exp.place || exp.location || '';
+    const order = typeof exp.order === 'number' ? exp.order : 0;
+
+    return {
+      ...exp,
+      id: exp._id ? String(exp._id) : exp.id,
+      title,
+      subtitle,
+      date,
+      place,
+      order,
+      // Automatic backward fallback compatibility
+      role: title,
+      company: subtitle,
+      period: date,
+      location: place,
+    };
+  });
+
+  const normalizedProfile = profile
+    ? {
+        ...profile,
+        github: profile.github || 'https://github.com/luckychoudhary',
+        linkedin: profile.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
+        leetcode: profile.leetcode || 'https://leetcode.com/luckychoudhary',
+        twitter: profile.twitter || 'https://twitter.com/luckychoudhary',
+        email: profile.email || 'luckychoudhary08292@gmail.com',
+      }
+    : null;
+
+  const data = {
+    profile: normalizedProfile,
+    skills: skills || [],
+    certificates: certificates || [],
+    projects: projects || [],
+    experiences: normalizedExperiences,
+  };
+
+  const serialized = JSON.stringify(data);
+  const etag = `W/"${serialized.length}-${Date.now()}"`;
+
+  portfolioCache = {
+    data,
+    cachedAt: Date.now(),
+    etag,
+  };
+
+  return portfolioCache;
+}
+
+function warmPortfolioCache() {
+  if (isRefreshingCache) return;
+  isRefreshingCache = true;
+  fetchFreshPortfolioData()
+    .then(() => {
+      console.log('⚡ Portfolio cache pre-warmed & ready for sub-millisecond serving!');
+    })
+    .catch((err) => {
+      console.warn('⚠️ Cache warmup:', err.message || err);
+    })
+    .finally(() => {
+      isRefreshingCache = false;
+    });
+}
+
+export function invalidatePortfolioCache() {
+  portfolioCache = null;
+  // Trigger immediate async pre-warm so next visitor gets instantaneous cache hit
+  setTimeout(() => {
+    warmPortfolioCache();
+  }, 50);
+}
 
 // ==========================================
 // API ROUTES (ALL 7 ACTIVE COLLECTIONS + ADMIN PANEL)
 // ==========================================
 
-// Aggregated Portfolio Data for Fast Initial Rendering
-app.get('/api/portfolio', async (_req: Request, res: Response) => {
+// Aggregated Portfolio Data for Blazing-Fast Initial Rendering (Sub-millisecond Cached)
+app.get('/api/portfolio', async (req: Request, res: Response) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      console.log('MongoDB not connected (state: ' + mongoose.connection.readyState + '), reconnecting...');
-      await connectDB();
+    // 1. Instant Cache Hit: Return cached result in < 1ms
+    if (portfolioCache) {
+      // Check If-None-Match ETag header for 304 Not Modified
+      if (req.headers['if-none-match'] === portfolioCache.etag) {
+        return res.status(304).end();
+      }
+
+      // If cache TTL expired, trigger background revalidation without blocking client (Stale-While-Revalidate)
+      if (Date.now() - portfolioCache.cachedAt > CACHE_TTL_MS) {
+        warmPortfolioCache();
+      }
+
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=180, stale-while-revalidate=86400');
+      res.setHeader('ETag', portfolioCache.etag);
+      res.setHeader('X-Cache-Status', 'HIT');
+      return res.json({
+        success: true,
+        data: portfolioCache.data,
+      });
     }
 
-    const [profile, skills, certificates, projects, experiences] =
-      await Promise.all([
-        Profile.findOne().lean(),
-        SkillCategory.find().sort({ order: 1 }).lean(),
-        Certificate.find().sort({ order: 1 }).lean(),
-        Project.find().sort({ order: 1 }).lean(),
-        Experience.find().sort({ order: 1 }).lean(),
-      ]);
-
-    const normalizedExperiences = experiences.map((exp: any) => {
-      const title = exp.title || exp.role || '';
-      const subtitle = exp.subtitle || exp.company || '';
-      const date = exp.date || exp.period || '';
-      const place = exp.place || exp.location || '';
-      const order = typeof exp.order === 'number' ? exp.order : 0;
-
-      return {
-        ...exp,
-        id: exp._id ? String(exp._id) : exp.id,
-        title,
-        subtitle,
-        date,
-        place,
-        order,
-        // Automatic backward fallback compatibility
-        role: title,
-        company: subtitle,
-        period: date,
-        location: place,
-      };
-    });
-
-    const normalizedProfile = profile
-      ? {
-          ...profile,
-          github: profile.github || 'https://github.com/luckychoudhary',
-          linkedin: profile.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
-          leetcode: profile.leetcode || 'https://leetcode.com/luckychoudhary',
-          twitter: profile.twitter || 'https://twitter.com/luckychoudhary',
-          email: profile.email || 'luckychoudhary08292@gmail.com',
-        }
-      : null;
-
-    res.json({
+    // 2. Cache Miss: Fetch fresh data from MongoDB
+    const fresh = await fetchFreshPortfolioData();
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=180, stale-while-revalidate=86400');
+    res.setHeader('ETag', fresh.etag);
+    res.setHeader('X-Cache-Status', 'MISS');
+    return res.json({
       success: true,
-      data: {
-        profile: normalizedProfile,
-        skills,
-        certificates,
-        projects,
-        experiences: normalizedExperiences,
-      },
+      data: fresh.data,
     });
   } catch (error) {
     console.error('Error in /api/portfolio:', error);
+    if (portfolioCache) {
+      return res.json({
+        success: true,
+        data: portfolioCache.data,
+        stale: true,
+      });
+    }
     res.status(500).json({ success: false, error: 'Failed to fetch portfolio data', details: String(error) });
   }
 });
@@ -162,6 +264,7 @@ const updateProfileHandler = async (req: Request, res: Response) => {
     }
 
     const updated = await Profile.findOneAndUpdate({}, updatePayload, { new: true, upsert: true });
+    invalidatePortfolioCache();
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update profile' });
@@ -204,6 +307,7 @@ app.get('/api/certificates/:id', async (req: Request, res: Response) => {
 app.post('/api/certificates', async (req: Request, res: Response) => {
   try {
     const newCert = await Certificate.create(req.body);
+    invalidatePortfolioCache();
     res.status(201).json({ success: true, data: newCert });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to create certificate' });
@@ -214,6 +318,7 @@ app.put('/api/certificates/:id', async (req: Request, res: Response) => {
   try {
     const updated = await Certificate.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Certificate not found' });
+    invalidatePortfolioCache();
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update certificate' });
@@ -223,6 +328,7 @@ app.put('/api/certificates/:id', async (req: Request, res: Response) => {
 app.delete('/api/certificates/:id', async (req: Request, res: Response) => {
   try {
     await Certificate.findByIdAndDelete(req.params.id);
+    invalidatePortfolioCache();
     res.json({ success: true, message: 'Certificate deleted' });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to delete certificate' });
@@ -254,6 +360,7 @@ app.get('/api/projects/:id', async (req: Request, res: Response) => {
 app.post('/api/projects', async (req: Request, res: Response) => {
   try {
     const newProject = await Project.create(req.body);
+    invalidatePortfolioCache();
     res.status(201).json({ success: true, data: newProject });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to create project' });
@@ -264,6 +371,7 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
   try {
     const updated = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Project not found' });
+    invalidatePortfolioCache();
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update project' });
@@ -273,6 +381,7 @@ app.put('/api/projects/:id', async (req: Request, res: Response) => {
 app.delete('/api/projects/:id', async (req: Request, res: Response) => {
   try {
     await Project.findByIdAndDelete(req.params.id);
+    invalidatePortfolioCache();
     res.json({ success: true, message: 'Project deleted' });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to delete project' });
@@ -304,6 +413,7 @@ const getSkillByIdHandler = async (req: Request, res: Response) => {
 const createSkillHandler = async (req: Request, res: Response) => {
   try {
     const newSkill = await SkillCategory.create(req.body);
+    invalidatePortfolioCache();
     res.status(201).json({ success: true, data: newSkill });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to create skill category' });
@@ -314,6 +424,7 @@ const updateSkillHandler = async (req: Request, res: Response) => {
   try {
     const updated = await SkillCategory.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Skill category not found' });
+    invalidatePortfolioCache();
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update skill category' });
@@ -323,6 +434,7 @@ const updateSkillHandler = async (req: Request, res: Response) => {
 const deleteSkillHandler = async (req: Request, res: Response) => {
   try {
     await SkillCategory.findByIdAndDelete(req.params.id);
+    invalidatePortfolioCache();
     res.json({ success: true, message: 'Skill category deleted' });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to delete skill category' });
@@ -410,6 +522,7 @@ app.post('/api/experiences', async (req: Request, res: Response) => {
       description: description || '',
       type: type || 'work',
     });
+    invalidatePortfolioCache();
     res.status(201).json({ success: true, data: normalizeExperienceItem(newExp) });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to create experience', details: String(error) });
@@ -447,6 +560,7 @@ app.put('/api/experiences/:id', async (req: Request, res: Response) => {
 
     const updated = await Experience.findByIdAndUpdate(req.params.id, updatePayload, { new: true }).lean();
     if (!updated) return res.status(404).json({ success: false, error: 'Experience not found' });
+    invalidatePortfolioCache();
     res.json({ success: true, data: normalizeExperienceItem(updated) });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to update experience', details: String(error) });
@@ -456,6 +570,7 @@ app.put('/api/experiences/:id', async (req: Request, res: Response) => {
 app.delete('/api/experiences/:id', async (req: Request, res: Response) => {
   try {
     await Experience.findByIdAndDelete(req.params.id);
+    invalidatePortfolioCache();
     res.json({ success: true, message: 'Experience deleted' });
   } catch (error) {
     res.status(400).json({ success: false, error: 'Failed to delete experience' });
@@ -816,11 +931,9 @@ app.post('/api/reconnect', async (_req: Request, res: Response) => {
 });
 
 // ==========================================
-// VITE MIDDLEWARE OR STATIC SERVING
+// VITE MIDDLEWARE OR STATIC SERVING & STARTUP
 // ==========================================
 async function startServer() {
-  await connectDB();
-
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req, res) => {
@@ -835,9 +948,24 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
+  // Bind port immediately so Render health checks succeed without waiting for database handshake
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Portfolio Server running at http://localhost:${PORT}`);
+    // Connect to database in the background
+    connectDB().catch((err) => console.error('Initial DB connection error:', err));
   });
+
+  // Render Keep-Alive: Ping to prevent Render free-tier cold sleep
+  const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || '';
+  if (RENDER_EXTERNAL_URL) {
+    console.log(`🔄 Setting up Render keep-alive pinger for: ${RENDER_EXTERNAL_URL}`);
+    setInterval(() => {
+      try {
+        const pingUrl = `${RENDER_EXTERNAL_URL.replace(/\/$/, '')}/health`;
+        fetch(pingUrl).catch(() => {});
+      } catch {}
+    }, 10 * 60 * 1000); // ping every 10 minutes (before 15 min free tier sleep)
+  }
 }
 
 startServer();

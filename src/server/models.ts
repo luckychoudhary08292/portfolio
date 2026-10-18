@@ -294,6 +294,14 @@ const SubscriberSchema = new Schema<ISubscriber>(
   { timestamps: true }
 );
 
+CertificateSchema.index({ order: 1 });
+ProjectSchema.index({ order: 1 });
+ProjectSchema.index({ featured: 1, order: 1 });
+SkillCategorySchema.index({ order: 1 });
+ExperienceSchema.index({ order: 1 });
+SkillLibrarySchema.index({ category: 1, name: 1 });
+InquirySchema.index({ createdAt: -1 });
+
 // Explicit collection names bound to models (All 8 active collections)
 export const Certificate = mongoose.model<ICertificate>('Certificate', CertificateSchema, 'certificates');
 export const Project = mongoose.model<IProject>('Project', ProjectSchema, 'projects');
