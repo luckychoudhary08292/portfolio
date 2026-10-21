@@ -178,7 +178,7 @@ const ProfileSchema = new Schema<IProfile>(
     github: { type: String, default: 'https://github.com/luckychoudhary' },
     linkedin: { type: String, default: 'https://linkedin.com/in/lucky-choudhary08292' },
     leetcode: { type: String, default: 'https://leetcode.com/luckychoudhary' },
-    twitter: { type: String, default: 'https://twitter.com/luckychoudhary' },
+    twitter: { type: String, default: 'https://x.com/_its_lucky' },
     resumeUrl: { type: String, default: '#' },
     heroImage: { type: String, default: '' },
     whyHireMeImage: { type: String, default: '' },

@@ -35,7 +35,13 @@ export const useSocialLinksData = () => {
   const githubUrl = formatSocialUrl(profile.github, 'https://github.com', 'luckychoudhary');
   const linkedinUrl = formatSocialUrl(profile.linkedin, 'https://linkedin.com/in', 'lucky-choudhary08292');
   const leetcodeUrl = formatSocialUrl(profile.leetcode, 'https://leetcode.com', 'luckychoudhary');
-  const twitterUrl = formatSocialUrl(profile.twitter, 'https://twitter.com', 'luckychoudhary');
+  const twitterUrl = formatSocialUrl(
+    profile.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary'
+      ? profile.twitter
+      : 'https://x.com/_its_lucky',
+    'https://x.com',
+    '_its_lucky'
+  );
   const gmailUrl = getGmailUrl(profile.email);
   const displayEmail = (profile.email || 'contact.luckychoudhary@gmail.com').replace(/^mailto:/, '');
 
@@ -95,10 +101,10 @@ export const useSocialLinksData = () => {
     },
     {
       id: 'twitter',
-      name: 'Twitter / X',
-      displayValue: profile.twitter
+      name: 'X (Twitter)',
+      displayValue: profile.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary'
         ? profile.twitter.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\/?/, '@')
-        : '@luckychoudhary',
+        : '@_its_lucky',
       url: twitterUrl,
       brandColor: '#0f1419',
       hoverBg: 'hover:bg-black hover:border-black hover:shadow-black/30',

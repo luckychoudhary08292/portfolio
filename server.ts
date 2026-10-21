@@ -17,6 +17,7 @@ import {
 } from './src/server/models.ts';
 
 dotenv.config({ override: true });
+mongoose.set('bufferCommands', false);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,17 +99,35 @@ let isRefreshingCache = false;
 
 async function fetchFreshPortfolioData() {
   if (mongoose.connection.readyState !== 1) {
-    await connectDB();
+    try {
+      await connectDB();
+    } catch {}
   }
 
-  const [profile, skills, certificates, projects, experiences] =
-    await Promise.all([
-      Profile.findOne().lean().exec(),
-      SkillCategory.find().sort({ order: 1 }).lean().exec(),
-      Certificate.find().sort({ order: 1 }).lean().exec(),
-      Project.find().sort({ order: 1 }).lean().exec(),
-      Experience.find().sort({ order: 1 }).lean().exec(),
-    ]);
+  let profile: any = null;
+  let skills: any[] = [];
+  let certificates: any[] = [];
+  let projects: any[] = [];
+  let experiences: any[] = [];
+
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const [p, s, c, pr, ex] = await Promise.all([
+        Profile.findOne().lean().exec(),
+        SkillCategory.find().sort({ order: 1 }).lean().exec(),
+        Certificate.find().sort({ order: 1 }).lean().exec(),
+        Project.find().sort({ order: 1 }).lean().exec(),
+        Experience.find().sort({ order: 1 }).lean().exec(),
+      ]);
+      profile = p;
+      skills = s || [];
+      certificates = c || [];
+      projects = pr || [];
+      experiences = ex || [];
+    } catch (queryErr) {
+      console.warn('⚠️ Query error in fetchFreshPortfolioData:', queryErr);
+    }
+  }
 
   const normalizedExperiences = (experiences || []).map((exp: any) => {
     const title = exp.title || exp.role || '';
@@ -133,16 +152,29 @@ async function fetchFreshPortfolioData() {
     };
   });
 
-  const normalizedProfile = profile
-    ? {
-        ...profile,
-        github: profile.github || 'https://github.com/luckychoudhary',
-        linkedin: profile.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
-        leetcode: profile.leetcode || 'https://leetcode.com/luckychoudhary',
-        twitter: profile.twitter || 'https://twitter.com/luckychoudhary',
-        email: profile.email || 'luckychoudhary08292@gmail.com',
-      }
-    : null;
+  const normalizedProfile = {
+    name: profile?.name || 'Lucky Choudhary',
+    title: profile?.title || 'Full Stack Developer',
+    heroQuote: profile?.heroQuote || '',
+    experienceYears: profile?.experienceYears || '',
+    projectsCompleted: profile?.projectsCompleted || '',
+    problemsSolved: profile?.problemsSolved || '',
+    gpa: profile?.gpa || '',
+    degree: profile?.degree || '',
+    university: profile?.university || '',
+    whyHireMeBio: profile?.whyHireMeBio || '',
+    github: profile?.github || 'https://github.com/luckychoudhary',
+    linkedin: profile?.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
+    leetcode: profile?.leetcode || 'https://leetcode.com/luckychoudhary',
+    twitter: (profile?.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary') ? profile.twitter : 'https://x.com/_its_lucky',
+    email: profile?.email || 'contact.luckychoudhary@gmail.com',
+    phone: profile?.phone || '',
+    website: profile?.website || '',
+    resumeUrl: profile?.resumeUrl || '#',
+    heroImage: profile?.heroImage || '',
+    whyHireMeImage: profile?.whyHireMeImage || '',
+    ...(profile || {}),
+  };
 
   const data = {
     profile: normalizedProfile,

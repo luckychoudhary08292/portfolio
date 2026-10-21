@@ -35,7 +35,7 @@ interface PortfolioContextType {
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
-const CACHE_STORAGE_KEY = 'luckychoudhary_portfolio_cache_v2';
+const CACHE_STORAGE_KEY = 'luckychoudhary_portfolio_cache_v3';
 
 interface CachedPayload {
   data: {
@@ -81,7 +81,7 @@ function normalizeProfile(p: any): ProfileData {
     github: p?.github || 'https://github.com/luckychoudhary',
     linkedin: p?.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
     leetcode: p?.leetcode || 'https://leetcode.com/luckychoudhary',
-    twitter: p?.twitter || 'https://twitter.com/luckychoudhary',
+    twitter: (p?.twitter && p.twitter !== 'https://twitter.com/luckychoudhary') ? p.twitter : 'https://x.com/_its_lucky',
     resumeUrl: p?.resumeUrl || defaultProfile.resumeUrl,
     heroImage: p?.heroImage || defaultProfile.heroImage,
     whyHireMeImage: p?.whyHireMeImage || defaultProfile.whyHireMeImage,

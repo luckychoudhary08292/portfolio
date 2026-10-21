@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Code2,
   Cpu,
   ExternalLink,
   Github,
@@ -17,12 +16,12 @@ import {
   Share2,
   Sparkles,
   X,
-  Calendar,
   User,
   Activity,
   Terminal,
   ShieldCheck,
   Zap,
+  Code2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProjectItem } from '../data/portfolioData';
@@ -43,7 +42,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
   onOpenHireModal,
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'architecture' | 'features' | 'gallery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'features' | 'architecture' | 'gallery'>('overview');
   const [copied, setCopied] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -106,15 +105,17 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImageIndex, allImages.length, onBack]);
 
-  const handleShare = () => {
+  // Share action
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
-  // Find previous and next project for seamless cycling
+  // Find previous & next project indices
   const currentIndex = allProjects.findIndex(
     (p) => (p._id || p.id) === (project._id || project.id) || p.title === project.title
   );
@@ -161,34 +162,34 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
   }, [project]);
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 font-sans selection:bg-[#ff6422] selection:text-white antialiased">
+    <div className="min-h-screen bg-[#fafbfc] text-slate-900 font-sans selection:bg-[#ff6422] selection:text-white antialiased">
       {/* Top Reading Progress Bar */}
       <div
-        className="fixed top-0 left-0 h-[2.5px] bg-gradient-to-r from-[#ff6422] via-[#ff8a4c] to-amber-400 z-50 transition-all duration-150"
+        className="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-[#ff6422] via-[#ff7b38] to-amber-500 z-50 transition-all duration-150"
         style={{ width: `${scrollProgress}%` }}
       />
 
-      {/* Sticky Command Bar Navigation */}
-      <header className="sticky top-0 z-40 bg-[#07090e]/90 backdrop-blur-2xl border-b border-white/[0.08] px-4 sm:px-8 py-3 transition-all">
+      {/* Sticky Command Bar Navigation (Clean White Portfolio Theme) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-4 sm:px-8 py-3.5 transition-all shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Left: Back button & Breadcrumb */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-[#ff6422]/50 text-white text-xs sm:text-sm font-medium transition-all group shrink-0 cursor-pointer active:scale-95"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 border border-slate-200 text-slate-800 text-xs sm:text-sm font-semibold transition-all group shrink-0 cursor-pointer active:scale-95"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-[#ff6422] group-hover:-translate-x-1 transition-transform" />
-              <span>Back</span>
+              <span>Back to Portfolio</span>
             </button>
 
-            <span className="text-white/20 hidden sm:inline">/</span>
+            <span className="text-slate-300 hidden sm:inline">/</span>
 
             <div className="hidden sm:flex items-center gap-2 min-w-0 truncate">
-              <span className="text-xs uppercase tracking-wider text-slate-400 font-mono shrink-0">
+              <span className="text-xs uppercase tracking-wider text-slate-500 font-mono shrink-0">
                 {project.category || 'Case Study'}
               </span>
-              <span className="text-white/20">·</span>
-              <span className="text-xs font-semibold text-slate-200 truncate max-w-[200px] md:max-w-[320px]">
+              <span className="text-slate-300">·</span>
+              <span className="text-xs font-bold text-slate-900 truncate max-w-[200px] md:max-w-[320px]">
                 {project.title}
               </span>
             </div>
@@ -196,20 +197,20 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
 
           {/* Center: Quick Project Switcher (If multiple projects) */}
           {allProjects.length > 1 && onSelectProject && (
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.06] text-xs text-slate-400">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-xs text-slate-600">
               <button
                 onClick={() => onSelectProject(prevProject)}
-                className="hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 cursor-pointer"
+                className="hover:text-slate-900 transition-colors p-1 rounded-full hover:bg-white cursor-pointer"
                 title={`Previous: ${prevProject.title}`}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="font-mono px-1">
+              <span className="font-mono px-1 font-semibold text-slate-700">
                 {currentIndex + 1} / {allProjects.length}
               </span>
               <button
                 onClick={() => onSelectProject(nextProject)}
-                className="hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 cursor-pointer"
+                className="hover:text-slate-900 transition-colors p-1 rounded-full hover:bg-white cursor-pointer"
                 title={`Next: ${nextProject.title}`}
               >
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -221,11 +222,11 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] text-slate-300 hover:text-white text-xs font-medium transition-all cursor-pointer active:scale-95"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-medium transition-all cursor-pointer active:scale-95 shadow-xs"
               title="Copy Case Study Link"
             >
-              <Share2 className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">{copied ? 'Link Copied' : 'Share'}</span>
+              <Share2 className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
             </button>
 
             {project.githubUrl && (
@@ -233,11 +234,11 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 href={project.githubUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] text-white text-xs font-medium transition-all hover:scale-[1.02] active:scale-95"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 shadow-xs"
                 title="View Source on GitHub"
               >
                 <Github className="w-3.5 h-3.5 text-white" />
-                <span className="hidden lg:inline">Source</span>
+                <span className="hidden lg:inline">Source Code</span>
               </a>
             )}
 
@@ -246,11 +247,11 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 href={project.liveUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#ff6422] to-[#ff7b38] hover:from-[#ff7536] hover:to-[#ff8a4c] text-white text-xs font-bold shadow-md shadow-[#ff6422]/20 transition-all hover:scale-[1.03] active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#ff6422] hover:bg-[#ff7536] text-white text-xs font-bold shadow-md shadow-orange-500/25 transition-all hover:scale-[1.03] active:scale-95 cursor-pointer"
               >
                 <Globe className="w-3.5 h-3.5" />
                 <span>Live Demo</span>
-                <ArrowUpRight className="w-3 h-3" />
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </a>
             ) : null}
           </div>
@@ -258,93 +259,99 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-14 pb-20">
-        {/* Editorial Kicker & Title */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-20">
+        {/* Editorial Header & Elevator Pitch */}
         <section className="space-y-4 mb-8">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider text-slate-400">
-            <span className="text-[#ff6422] font-semibold">{project.category || 'Engineering'}</span>
-            <span aria-hidden="true" className="text-white/20">·</span>
-            <span>{project.role || 'Full-Stack Developer'}</span>
-            <span aria-hidden="true" className="text-white/20">·</span>
-            <span>{project.duration || 'Case Study'}</span>
-            <span aria-hidden="true" className="text-white/20">·</span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {project.liveUrl && project.liveUrl !== '#' ? 'Live Project' : 'Completed'}
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-full bg-orange-100/80 border border-orange-200 text-[#ff6422] font-bold">
+              {project.category || 'Engineering'}
+            </span>
+            <span aria-hidden="true" className="text-slate-300">·</span>
+            <span className="text-slate-600 font-semibold">{project.role || 'Full-Stack Developer'}</span>
+            <span aria-hidden="true" className="text-slate-300">·</span>
+            <span className="text-slate-500">{project.duration || 'Case Study'}</span>
+            <span aria-hidden="true" className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {project.liveUrl && project.liveUrl !== '#' ? 'Live Project' : 'Completed Work'}
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.08]">
             {project.title}
           </h1>
 
-          {project.subtitle && (
-            <p className="text-base sm:text-xl text-slate-300 font-normal leading-relaxed max-w-3xl">
+          {project.subtitle ? (
+            <p className="text-base sm:text-xl text-slate-600 font-normal leading-relaxed max-w-3xl">
               {project.subtitle}
+            </p>
+          ) : (
+            <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-3xl">
+              {overviewText.slice(0, 180)}...
             </p>
           )}
 
-          {/* Key Facts Strips (Zero-Pill Typographic Grid) */}
-          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 border-t border-b border-white/[0.08] py-4 my-6">
+          {/* Key Facts Strips (Clean White Theme Typographic Grid) */}
+          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-white rounded-2xl border border-slate-200/90 shadow-xs my-6">
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-0.5">Role / Focus</p>
-              <p className="text-xs sm:text-sm font-semibold text-slate-200">
-                {project.role || 'System Engineering'}
+              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Role / Focus</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900">
+                {project.role || 'System Architecture'}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-0.5">Timeline</p>
-              <p className="text-xs sm:text-sm font-semibold text-slate-200">
+              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Timeline</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900">
                 {project.duration || 'Production Cycle'}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-0.5">Key Metric</p>
-              <p className="text-xs sm:text-sm font-semibold text-[#ff6422]">
+              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Impact Metric</p>
+              <p className="text-xs sm:text-sm font-black text-[#ff6422]">
                 {project.metrics || '100% Responsive'}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-0.5">Deliverable</p>
-              <p className="text-xs sm:text-sm font-semibold text-slate-200">
-                {project.tag || 'Web Architecture'}
+              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Deliverable</p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                {project.tag || 'Web Application'}
               </p>
             </div>
           </div>
         </section>
 
-        {/* Primary Viewport: Browser Showcase Window */}
-        <section className="mb-14">
-          <div className="rounded-2xl sm:rounded-3xl border border-white/[0.12] bg-[#0d1117] overflow-hidden shadow-2xl shadow-black/80">
+        {/* Primary Viewport: Clean macOS Browser Showcase Window */}
+        <section className="mb-12">
+          <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-xl shadow-slate-200/60">
             {/* macOS Browser Header Bar */}
-            <div className="px-4 py-3 bg-[#0a0d14] border-b border-white/[0.08] flex items-center justify-between gap-4">
+            <div className="px-4 py-3 bg-slate-100/90 border-b border-slate-200/80 flex items-center justify-between gap-4">
               {/* Traffic Light Dots */}
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#ff5f56] opacity-90 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-[#ffbd2e] opacity-90 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-[#27c93f] opacity-90 inline-block" />
+                <span className="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-xs" />
+                <span className="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-xs" />
+                <span className="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-xs" />
               </div>
 
               {/* URL Mockup Address Bar */}
-              <div className="flex-1 max-w-md mx-auto hidden sm:flex items-center justify-center gap-2 px-4 py-1 rounded-lg bg-black/40 border border-white/[0.06] text-xs text-slate-400 font-mono">
-                <Lock className="w-3 h-3 text-emerald-400" />
-                <span className="text-slate-300 truncate">https://{displayDomain}</span>
+              <div className="flex-1 max-w-md mx-auto hidden sm:flex items-center justify-center gap-2 px-4 py-1 rounded-lg bg-white border border-slate-200/90 text-xs text-slate-600 font-mono shadow-xs">
+                <Lock className="w-3 h-3 text-emerald-500" />
+                <span className="text-slate-700 truncate font-medium">https://{displayDomain}</span>
               </div>
 
               {/* Expand High-Res Button */}
               <button
                 onClick={() => setSelectedImageIndex(0)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200/90 transition-colors cursor-pointer shadow-xs"
                 title="Expand Full Resolution"
               >
-                <Maximize2 className="w-3 h-3 text-[#ff6422]" />
+                <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
                 <span className="hidden sm:inline">Enlarge Preview</span>
               </button>
             </div>
 
             {/* High-Fidelity Project Showcase Image */}
             <div
-              className="relative aspect-[16/9] w-full bg-black/60 overflow-hidden group cursor-pointer"
+              className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden group cursor-pointer"
               onClick={() => setSelectedImageIndex(0)}
             >
               <img
@@ -358,25 +365,25 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               />
 
               {/* Subtle hover overlay hint */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 backdrop-blur-md text-white text-xs font-semibold border border-white/20 shadow-xl">
+              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 backdrop-blur-md text-slate-900 text-xs font-bold border border-white shadow-xl">
                   <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
-                  Click to inspect full resolution
+                  Click to inspect full resolution screenshot
                 </span>
               </div>
             </div>
 
             {/* Mini thumbnail strip if multiple images */}
             {allImages.length > 1 && (
-              <div className="px-4 py-3 bg-[#0a0d14] border-t border-white/[0.08] flex items-center gap-2.5 overflow-x-auto scrollbar-none">
-                <span className="text-[11px] font-mono uppercase text-slate-500 whitespace-nowrap mr-1">
+              <div className="px-4 py-3 bg-slate-50 border-t border-slate-200/80 flex items-center gap-2.5 overflow-x-auto scrollbar-none">
+                <span className="text-[11px] font-mono uppercase text-slate-500 whitespace-nowrap mr-1 font-bold">
                   Screenshots ({allImages.length}):
                 </span>
                 {allImages.map((imgUrl, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImageIndex(i)}
-                    className="relative w-14 h-9 sm:w-18 sm:h-11 rounded-lg overflow-hidden border border-white/10 hover:border-[#ff6422] shrink-0 transition-all cursor-pointer opacity-80 hover:opacity-100"
+                    className="relative w-14 h-9 sm:w-18 sm:h-11 rounded-lg overflow-hidden border border-slate-200 hover:border-[#ff6422] shrink-0 transition-all cursor-pointer opacity-85 hover:opacity-100 shadow-xs"
                     title={`View Screenshot ${i + 1}`}
                   >
                     <img src={imgUrl} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" />
@@ -387,8 +394,8 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
           </div>
         </section>
 
-        {/* Section Navigation Tabs */}
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/[0.03] border border-white/[0.08] mb-10 overflow-x-auto">
+        {/* Section Navigation Tabs (Crisp White Theme) */}
+        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white border border-slate-200/90 mb-8 overflow-x-auto shadow-xs">
           {[
             { id: 'overview', label: 'Executive Overview', icon: Sparkles },
             { id: 'features', label: 'Core Features', icon: CheckCircle2 },
@@ -401,10 +408,10 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'bg-[#ff6422] text-white shadow-md shadow-[#ff6422]/20'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-[#ff6422] text-white shadow-md shadow-orange-500/20'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
@@ -415,45 +422,50 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
         </div>
 
         {/* Dynamic Tab Content with Smooth Transitions */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Main Left Content Area (8 Cols) */}
-          <div className="lg:col-span-8 space-y-10">
+          <div className="lg:col-span-8 space-y-8">
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className="space-y-8"
+                className="space-y-6"
               >
-                <div className="space-y-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-[#ff6422]" />
+                <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
                     Project Summary & Mission
                   </h2>
-                  <p className="text-slate-300 text-base sm:text-lg leading-relaxed whitespace-pre-line font-normal">
+                  <p className="text-slate-700 text-base sm:text-lg leading-relaxed whitespace-pre-line font-normal">
                     {overviewText}
                   </p>
                 </div>
 
                 {/* Engineering Highlights Quick List */}
-                <div className="space-y-3 pt-4 border-t border-white/[0.08]">
-                  <h3 className="text-sm font-mono uppercase tracking-wider text-slate-400">
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
                     Primary Objectives & Impact
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                      <Zap className="w-4 h-4 text-[#ff6422] mb-2" />
-                      <h4 className="text-xs sm:text-sm font-semibold text-white">Performance First</h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:border-[#ff6422]/50 transition-colors">
+                      <div className="w-8 h-8 rounded-xl bg-orange-100 text-[#ff6422] flex items-center justify-center mb-3">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900">Performance First</h4>
+                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
                         Engineered with clean asset pipelines and fast render speeds across diverse network conditions.
                       </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400 mb-2" />
-                      <h4 className="text-xs sm:text-sm font-semibold text-white">Reliability & Security</h4>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                        Adheres to strict input sanitization, data validation, and robust error recovery patterns.
+
+                    <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:border-[#ff6422]/50 transition-colors">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900">Reliability & Code Quality</h4>
+                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                        Adheres to strict input sanitization, data validation, modular architecture, and error recovery patterns.
                       </p>
                     </div>
                   </div>
@@ -469,21 +481,27 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-[#ff6422]" />
-                  Key Features & Functional Highlights
-                </h2>
-                <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
+                    Key Features & Functional Highlights
+                  </h2>
+                  <span className="text-xs font-mono font-bold text-slate-500">
+                    {featuresList.length} Highlights
+                  </span>
+                </div>
+
+                <div className="space-y-3.5">
                   {featuresList.map((feature, fIndex) => (
                     <div
                       key={fIndex}
-                      className="p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#ff6422]/40 transition-all flex items-start gap-4"
+                      className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-[#ff6422]/60 hover:shadow-md transition-all flex items-start gap-4 shadow-xs"
                     >
-                      <span className="w-6 h-6 rounded-lg bg-[#ff6422]/15 border border-[#ff6422]/30 text-[#ff6422] text-xs font-mono font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="w-7 h-7 rounded-xl bg-orange-100 border border-orange-200 text-[#ff6422] text-xs font-mono font-black flex items-center justify-center shrink-0 mt-0.5">
                         {String(fIndex + 1).padStart(2, '0')}
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm sm:text-base text-slate-200 font-medium leading-relaxed">
+                        <p className="text-sm sm:text-base text-slate-800 font-semibold leading-relaxed">
                           {feature}
                         </p>
                       </div>
@@ -501,32 +519,32 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-[#ff6422]" />
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
                   System Architecture & Implementation
                 </h2>
 
-                <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-mono text-purple-400 uppercase tracking-wider">
-                    <Terminal className="w-3.5 h-3.5" />
+                <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-mono text-[#ff6422] uppercase tracking-wider font-bold">
+                    <Terminal className="w-4 h-4" />
                     <span>Technical Architecture Specs</span>
                   </div>
-                  <p className="text-slate-300 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                  <p className="text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-line">
                     {project.architecture ||
                       `This system is organized with strict separation of concerns between presentation, business logic, and persistent storage layers.\n\n• Client Layer: Built with reactive, typed components maximizing UI predictability and minimal re-render footprints.\n• Network & API Layer: Asynchronous request handling with defensive error boundaries and caching.\n• Data Architecture: Validated schemas ensuring consistent state propagation and zero-loss mutations.`}
                   </p>
                 </div>
 
                 {/* Tech Breakdown Grid */}
-                <div className="space-y-3 pt-4">
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-slate-400">
+                <div className="space-y-3 pt-3">
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
                     Technology Breakdown
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {project.techStack.map((tech, tIdx) => (
                       <span
                         key={tIdx}
-                        className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-200 text-xs sm:text-sm font-mono font-medium transition-colors"
+                        className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm font-mono font-semibold transition-all hover:border-[#ff6422] shadow-xs"
                       >
                         {tech}
                       </span>
@@ -545,11 +563,11 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-[#ff6422]" />
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
                     Visual Gallery & Media
                   </h2>
-                  <span className="text-xs font-mono text-slate-400">
+                  <span className="text-xs font-mono font-bold text-slate-500">
                     {allImages.length} {allImages.length === 1 ? 'Screenshot' : 'Screenshots'}
                   </span>
                 </div>
@@ -559,7 +577,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                     <div
                       key={idx}
                       onClick={() => setSelectedImageIndex(idx)}
-                      className="group relative rounded-2xl overflow-hidden border border-white/[0.1] bg-black/40 aspect-video cursor-pointer hover:border-[#ff6422]/60 transition-all shadow-md"
+                      className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-white aspect-video cursor-pointer hover:border-[#ff6422] hover:shadow-lg transition-all shadow-xs"
                     >
                       <img
                         src={imgUrl}
@@ -571,9 +589,9 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                             'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80';
                         }}
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/80 text-white text-xs font-medium border border-white/20">
-                          <Maximize2 className="w-3 h-3 text-[#ff6422]" />
+                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold shadow-lg">
+                          <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
                           Inspect #{idx + 1}
                         </span>
                       </div>
@@ -586,11 +604,11 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
 
           {/* Right Sidebar: Quick Actions & Specs (4 Cols) */}
           <aside className="lg:col-span-4 space-y-6">
-            <div className="rounded-2xl sm:rounded-3xl bg-[#0c1017] border border-white/[0.1] p-6 space-y-6 sticky top-20 shadow-xl">
+            <div className="rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 p-6 space-y-6 sticky top-24 shadow-sm">
               <div>
-                <h3 className="text-sm font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3.5 flex items-center gap-2 font-bold">
                   <Activity className="w-4 h-4 text-[#ff6422]" />
-                  Project Links
+                  Project Action Links
                 </h3>
 
                 <div className="space-y-2.5">
@@ -599,7 +617,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                       href={project.liveUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6422] to-[#ff7b38] hover:from-[#ff7536] hover:to-[#ff8a4c] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#ff6422]/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#ff6422] hover:bg-[#ff7536] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Globe className="w-4 h-4" />
                       <span>Launch Live Application</span>
@@ -608,7 +626,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                   ) : (
                     <button
                       disabled
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/[0.04] text-slate-500 font-medium text-xs cursor-not-allowed border border-white/[0.06]"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 text-slate-400 font-medium text-xs cursor-not-allowed border border-slate-200"
                     >
                       Demo Available Upon Request
                     </button>
@@ -619,7 +637,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                       href={project.githubUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-white font-semibold text-xs sm:text-sm border border-white/[0.08] hover:border-white/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xs"
                     >
                       <Github className="w-4 h-4 text-white" />
                       <span>GitHub Repository</span>
@@ -630,15 +648,15 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               </div>
 
               {/* Technologies */}
-              <div className="pt-5 border-t border-white/[0.08]">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3">
+              <div className="pt-5 border-t border-slate-100">
+                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3 font-bold">
                   Tech Stack
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
                   {project.techStack.map((tech, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-slate-300 text-xs font-mono font-medium border border-white/[0.06]"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-mono font-semibold border border-slate-200/80"
                     >
                       {tech}
                     </span>
@@ -647,37 +665,37 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               </div>
 
               {/* Metadata Details */}
-              <div className="pt-5 border-t border-white/[0.08] space-y-2.5 text-xs">
-                <div className="flex items-center justify-between text-slate-400">
+              <div className="pt-5 border-t border-slate-100 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between text-slate-600">
                   <span>Domain Category</span>
-                  <span className="font-semibold text-white">{project.category}</span>
+                  <span className="font-bold text-slate-900">{project.category}</span>
                 </div>
                 {project.tag && (
-                  <div className="flex items-center justify-between text-slate-400">
+                  <div className="flex items-center justify-between text-slate-600">
                     <span>Engineering Focus</span>
-                    <span className="font-semibold text-white">{project.tag}</span>
+                    <span className="font-bold text-slate-900">{project.tag}</span>
                   </div>
                 )}
                 {project.role && (
-                  <div className="flex items-center justify-between text-slate-400">
+                  <div className="flex items-center justify-between text-slate-600">
                     <span>Author Role</span>
-                    <span className="font-semibold text-white">{project.role}</span>
+                    <span className="font-bold text-slate-900">{project.role}</span>
                   </div>
                 )}
                 {project.metrics && (
-                  <div className="flex items-center justify-between text-slate-400">
+                  <div className="flex items-center justify-between text-slate-600">
                     <span>Key Metric</span>
-                    <span className="font-bold text-[#ff6422]">{project.metrics}</span>
+                    <span className="font-black text-[#ff6422]">{project.metrics}</span>
                   </div>
                 )}
               </div>
 
               {/* Inquire / Hire CTA */}
               {onOpenHireModal && (
-                <div className="pt-5 border-t border-white/[0.08]">
+                <div className="pt-5 border-t border-slate-100">
                   <button
                     onClick={onOpenHireModal}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 hover:text-white text-xs font-semibold border border-white/[0.08] hover:border-[#ff6422]/50 transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100/80 text-[#ff6422] text-xs font-bold border border-orange-200 transition-all cursor-pointer active:scale-95 shadow-xs"
                   >
                     <User className="w-3.5 h-3.5 text-[#ff6422]" />
                     <span>Inquire About Similar Work</span>
@@ -688,17 +706,17 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
           </aside>
         </div>
 
-        {/* Footer Project Stepper (Next Project Showcase) */}
+        {/* Footer Project Stepper (Next Project Showcase in Portfolio Theme) */}
         {allProjects.length > 1 && onSelectProject && nextProject && (
-          <section className="mt-20 pt-12 border-t border-white/[0.1]">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <section className="mt-18 pt-10 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
               <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-slate-400">Continue Exploring</p>
-                <h3 className="text-lg sm:text-xl font-bold text-white">Next Project in Portfolio</h3>
+                <p className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">Continue Exploring</p>
+                <h3 className="text-lg sm:text-xl font-black text-slate-900">Next Project in Portfolio</h3>
               </div>
               <button
                 onClick={onBack}
-                className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="text-xs font-bold text-slate-500 hover:text-[#ff6422] transition-colors cursor-pointer"
               >
                 Back to All Projects ↑
               </button>
@@ -706,10 +724,10 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
 
             <div
               onClick={() => onSelectProject(nextProject)}
-              className="group p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0c1017] border border-white/[0.1] hover:border-[#ff6422]/50 transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-xl hover:shadow-black/50"
+              className="group p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 hover:border-[#ff6422] transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs hover:shadow-md"
             >
               <div className="flex items-center gap-4 min-w-0">
-                <div className="w-20 h-14 sm:w-28 sm:h-18 rounded-xl overflow-hidden bg-black/60 shrink-0 border border-white/10">
+                <div className="w-20 h-14 sm:w-28 sm:h-18 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-xs">
                   <img
                     src={nextProject.image}
                     alt={nextProject.title}
@@ -721,19 +739,19 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#ff6422]">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#ff6422] font-bold">
                     {nextProject.category}
                   </span>
-                  <h4 className="text-base sm:text-xl font-bold text-white group-hover:text-[#ff6422] transition-colors truncate">
+                  <h4 className="text-base sm:text-xl font-black text-slate-900 group-hover:text-[#ff6422] transition-colors truncate">
                     {nextProject.title}
                   </h4>
-                  <p className="text-xs text-slate-400 truncate max-w-lg mt-0.5">
+                  <p className="text-xs text-slate-600 truncate max-w-lg mt-0.5">
                     {nextProject.description}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-white group-hover:text-[#ff6422] shrink-0">
+              <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#ff6422] shrink-0">
                 <span>View Case Study</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </div>
@@ -750,7 +768,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedImageIndex(null)}
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6"
+            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-6"
           >
             {/* Top Bar */}
             <div
@@ -758,7 +776,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               className="flex items-center justify-between max-w-6xl w-full mx-auto pb-4"
             >
               <div className="text-xs sm:text-sm font-mono text-slate-300">
-                <span className="text-[#ff6422] font-semibold">{project.title}</span>
+                <span className="text-[#ff6422] font-bold">{project.title}</span>
                 <span className="text-white/20 mx-2">·</span>
                 <span>
                   Screenshot {selectedImageIndex + 1} of {allImages.length}
@@ -768,7 +786,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSelectedImageIndex(null)}
-                  className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <X className="w-3.5 h-3.5" />
                   <span>Close (Esc)</span>
@@ -788,7 +806,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                       prev !== null ? (prev - 1 + allImages.length) % allImages.length : 0
                     )
                   }
-                  className="absolute left-2 sm:left-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  className="absolute left-2 sm:left-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-lg"
                   title="Previous (←)"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -808,7 +826,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                       prev !== null ? (prev + 1) % allImages.length : 0
                     )
                   }
-                  className="absolute right-2 sm:right-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  className="absolute right-2 sm:right-4 z-10 p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-lg"
                   title="Next (→)"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -828,7 +846,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                     onClick={() => setSelectedImageIndex(i)}
                     className={`w-12 h-8 rounded-lg overflow-hidden border transition-all cursor-pointer ${
                       i === selectedImageIndex
-                        ? 'border-[#ff6422] scale-110'
+                        ? 'border-[#ff6422] scale-110 shadow-md'
                         : 'border-white/20 opacity-50 hover:opacity-100'
                     }`}
                   >
