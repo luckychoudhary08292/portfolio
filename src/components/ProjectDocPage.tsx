@@ -19,9 +19,6 @@ import {
   User,
   Activity,
   Terminal,
-  ShieldCheck,
-  Zap,
-  Code2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ProjectItem } from '../data/portfolioData';
@@ -46,10 +43,12 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
   const [copied, setCopied] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  // Scroll to top on mount or when project changes
+  // Scroll to top and reset active tab on mount or when project changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.body.style.overflow = 'auto';
+    setActiveTab('overview');
+    setSelectedImageIndex(null);
   }, [project]);
 
   // Track scroll reading progress
@@ -64,7 +63,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Compile all project images (main banner + gallery)
+  // Compile all project images (main banner + gallery) strictly from DB
   const allImages = useMemo(() => {
     const imgs: string[] = [];
     if (project.image) imgs.push(project.image);
@@ -75,9 +74,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
         }
       });
     }
-    return imgs.length > 0
-      ? imgs
-      : ['https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1600&q=80'];
+    return imgs;
   }, [project]);
 
   // Image viewer keyboard navigation
@@ -126,11 +123,8 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
       ? allProjects[currentIndex + 1]
       : allProjects[0];
 
-  // Derived content
-  const overviewText =
-    project.overview ||
-    project.description ||
-    'A high-performance software system designed with a focus on responsiveness, architectural clarity, and user satisfaction.';
+  // Derived content strictly from database record
+  const overviewText = project.overview || project.description || '';
 
   const featuresList = useMemo(() => {
     if (project.keyFeatures && project.keyFeatures.length > 0) {
@@ -139,27 +133,47 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
     if (project.deliverables && project.deliverables.length > 0) {
       return project.deliverables;
     }
-    return [
-      'High-throughput distributed architecture built for low latency and zero downtime',
-      'Modern, accessible UI with smooth micro-interactions and mobile responsiveness',
-      'Production-grade database indexing and optimized server caching layers',
-      'Clean modular codebase adhering strictly to SOLID design principles and clean code patterns',
-      'End-to-end type safety across client interfaces and backend endpoints',
-    ];
+    return [];
   }, [project]);
 
-  // Extract clean domain for browser mockup
+  // Extract clean domain for browser mockup when liveUrl exists
   const displayDomain = useMemo(() => {
     if (!project.liveUrl || project.liveUrl === '#') {
-      return `${project.title.toLowerCase().replace(/[^a-z0-9]/g, '')}.app`;
+      return project.category || project.title;
     }
     try {
       const url = new URL(project.liveUrl);
       return url.hostname;
     } catch {
-      return 'production.live';
+      return project.liveUrl;
     }
   }, [project]);
+
+  const factItems = useMemo(() => {
+    const items: { label: string; value: string; highlight?: boolean }[] = [];
+    if (project.role) items.push({ label: 'Role / Focus', value: project.role });
+    if (project.duration) items.push({ label: 'Timeline', value: project.duration });
+    if (project.metrics) items.push({ label: 'Impact Metric', value: project.metrics, highlight: true });
+    if (project.tag) items.push({ label: 'Deliverable', value: project.tag });
+    else if (project.category) items.push({ label: 'Category', value: project.category });
+    return items;
+  }, [project]);
+
+  const availableTabs = useMemo(() => {
+    const tabs: { id: 'overview' | 'features' | 'architecture' | 'gallery'; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+      { id: 'overview', label: 'Executive Overview', icon: Sparkles },
+    ];
+    if (featuresList.length > 0) {
+      tabs.push({ id: 'features', label: 'Core Features', icon: CheckCircle2 });
+    }
+    if (project.architecture || (project.techStack && project.techStack.length > 0)) {
+      tabs.push({ id: 'architecture', label: 'Tech & Architecture', icon: Cpu });
+    }
+    if (allImages.length > 0) {
+      tabs.push({ id: 'gallery', label: `Media Gallery (${allImages.length})`, icon: Layers });
+    }
+    return tabs;
+  }, [featuresList.length, project.architecture, project.techStack, allImages.length]);
 
   return (
     <div className="min-h-screen bg-[#fafbfc] text-slate-900 font-sans selection:bg-[#ff6422] selection:text-white antialiased">
@@ -185,10 +199,14 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
             <span className="text-slate-300 hidden sm:inline">/</span>
 
             <div className="hidden sm:flex items-center gap-2 min-w-0 truncate">
-              <span className="text-xs uppercase tracking-wider text-slate-500 font-mono shrink-0">
-                {project.category || 'Case Study'}
-              </span>
-              <span className="text-slate-300">·</span>
+              {project.category && (
+                <>
+                  <span className="text-xs uppercase tracking-wider text-slate-500 font-mono shrink-0">
+                    {project.category}
+                  </span>
+                  <span className="text-slate-300">·</span>
+                </>
+              )}
               <span className="text-xs font-bold text-slate-900 truncate max-w-[200px] md:max-w-[320px]">
                 {project.title}
               </span>
@@ -263,18 +281,32 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
         {/* Editorial Header & Elevator Pitch */}
         <section className="space-y-4 mb-8">
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider">
-            <span className="px-3 py-1 rounded-full bg-orange-100/80 border border-orange-200 text-[#ff6422] font-bold">
-              {project.category || 'Engineering'}
-            </span>
-            <span aria-hidden="true" className="text-slate-300">·</span>
-            <span className="text-slate-600 font-semibold">{project.role || 'Full-Stack Developer'}</span>
-            <span aria-hidden="true" className="text-slate-300">·</span>
-            <span className="text-slate-500">{project.duration || 'Case Study'}</span>
-            <span aria-hidden="true" className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {project.liveUrl && project.liveUrl !== '#' ? 'Live Project' : 'Completed Work'}
-            </span>
+            {project.category && (
+              <span className="px-3 py-1 rounded-full bg-orange-100/80 border border-orange-200 text-[#ff6422] font-bold">
+                {project.category}
+              </span>
+            )}
+            {project.role && (
+              <>
+                <span aria-hidden="true" className="text-slate-300">·</span>
+                <span className="text-slate-600 font-semibold">{project.role}</span>
+              </>
+            )}
+            {project.duration && (
+              <>
+                <span aria-hidden="true" className="text-slate-300">·</span>
+                <span className="text-slate-500">{project.duration}</span>
+              </>
+            )}
+            {project.liveUrl && project.liveUrl !== '#' && (
+              <>
+                <span aria-hidden="true" className="text-slate-300">·</span>
+                <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Project
+                </span>
+              </>
+            )}
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-[1.08]">
@@ -285,39 +317,27 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
             <p className="text-base sm:text-xl text-slate-600 font-normal leading-relaxed max-w-3xl">
               {project.subtitle}
             </p>
-          ) : (
+          ) : overviewText ? (
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-3xl">
-              {overviewText.slice(0, 180)}...
+              {overviewText}
             </p>
-          )}
+          ) : null}
 
-          {/* Key Facts Strips (Clean White Theme Typographic Grid) */}
-          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-white rounded-2xl border border-slate-200/90 shadow-xs my-6">
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Role / Focus</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {project.role || 'System Architecture'}
-              </p>
+          {/* Key Facts Strips (Strictly from database fields) */}
+          {factItems.length > 0 && (
+            <div className={`pt-4 grid grid-cols-2 ${factItems.length >= 4 ? 'md:grid-cols-4' : factItems.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4 p-5 bg-white rounded-2xl border border-slate-200/90 shadow-xs my-6`}>
+              {factItems.map((fact) => (
+                <div key={fact.label}>
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">
+                    {fact.label}
+                  </p>
+                  <p className={`text-xs sm:text-sm truncate ${fact.highlight ? 'font-black text-[#ff6422]' : 'font-bold text-slate-900'}`}>
+                    {fact.value}
+                  </p>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Timeline</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-900">
-                {project.duration || 'Production Cycle'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Impact Metric</p>
-              <p className="text-xs sm:text-sm font-black text-[#ff6422]">
-                {project.metrics || '100% Responsive'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-0.5">Deliverable</p>
-              <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                {project.tag || 'Web Application'}
-              </p>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Primary Viewport: Clean macOS Browser Showcase Window */}
@@ -335,43 +355,58 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               {/* URL Mockup Address Bar */}
               <div className="flex-1 max-w-md mx-auto hidden sm:flex items-center justify-center gap-2 px-4 py-1 rounded-lg bg-white border border-slate-200/90 text-xs text-slate-600 font-mono shadow-xs">
                 <Lock className="w-3 h-3 text-emerald-500" />
-                <span className="text-slate-700 truncate font-medium">https://{displayDomain}</span>
+                <span className="text-slate-700 truncate font-medium">
+                  {project.liveUrl && project.liveUrl !== '#' ? project.liveUrl : displayDomain}
+                </span>
               </div>
 
               {/* Expand High-Res Button */}
-              <button
-                onClick={() => setSelectedImageIndex(0)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200/90 transition-colors cursor-pointer shadow-xs"
-                title="Expand Full Resolution"
-              >
-                <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
-                <span className="hidden sm:inline">Enlarge Preview</span>
-              </button>
+              {allImages.length > 0 ? (
+                <button
+                  onClick={() => setSelectedImageIndex(0)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200/90 transition-colors cursor-pointer shadow-xs"
+                  title="Expand Full Resolution"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
+                  <span className="hidden sm:inline">Enlarge Preview</span>
+                </button>
+              ) : (
+                <div className="w-10" />
+              )}
             </div>
 
             {/* High-Fidelity Project Showcase Image */}
-            <div
-              className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden group cursor-pointer"
-              onClick={() => setSelectedImageIndex(0)}
-            >
-              <img
-                src={project.image}
-                alt={project.title}
-                className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.015]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1600&q=80';
-                }}
-              />
+            {allImages.length > 0 ? (
+              <div
+                className="relative aspect-[16/9] w-full bg-slate-100 overflow-hidden group cursor-pointer"
+                onClick={() => setSelectedImageIndex(0)}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                  <Layers className="w-16 h-16 text-slate-300" />
+                </div>
+                <img
+                  src={allImages[0]}
+                  alt={project.title}
+                  className="relative z-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.015]"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
 
-              {/* Subtle hover overlay hint */}
-              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 backdrop-blur-md text-slate-900 text-xs font-bold border border-white shadow-xl">
-                  <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
-                  Click to inspect full resolution screenshot
-                </span>
+                {/* Subtle hover overlay hint */}
+                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                  <span className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 backdrop-blur-md text-slate-900 text-xs font-bold border border-white shadow-xl">
+                    <Maximize2 className="w-3.5 h-3.5 text-[#ff6422]" />
+                    Click to inspect full resolution screenshot
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="aspect-[16/9] w-full bg-slate-50 flex flex-col items-center justify-center gap-2 text-slate-400">
+                <Layers className="w-14 h-14 text-slate-300" />
+                <span className="text-xs font-medium">No preview image stored in database</span>
+              </div>
+            )}
 
             {/* Mini thumbnail strip if multiple images */}
             {allImages.length > 1 && (
@@ -395,31 +430,28 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
         </section>
 
         {/* Section Navigation Tabs (Crisp White Theme) */}
-        <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white border border-slate-200/90 mb-8 overflow-x-auto shadow-xs">
-          {[
-            { id: 'overview', label: 'Executive Overview', icon: Sparkles },
-            { id: 'features', label: 'Core Features', icon: CheckCircle2 },
-            { id: 'architecture', label: 'Technical Architecture', icon: Cpu },
-            { id: 'gallery', label: `Media Gallery (${allImages.length})`, icon: Layers },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'bg-[#ff6422] text-white shadow-md shadow-orange-500/20'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {availableTabs.length > 1 && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white border border-slate-200/90 mb-8 overflow-x-auto shadow-xs">
+            {availableTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+                    isActive
+                      ? 'bg-[#ff6422] text-white shadow-md shadow-orange-500/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Dynamic Tab Content with Smooth Transitions */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
@@ -436,45 +468,43 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
-                    Project Summary & Mission
+                    Project Summary
                   </h2>
-                  <p className="text-slate-700 text-base sm:text-lg leading-relaxed whitespace-pre-line font-normal">
-                    {overviewText}
-                  </p>
+                  {overviewText ? (
+                    <p className="text-slate-700 text-base sm:text-lg leading-relaxed whitespace-pre-line font-normal">
+                      {overviewText}
+                    </p>
+                  ) : (
+                    <p className="text-slate-400 text-sm">No extended overview saved for this project.</p>
+                  )}
                 </div>
 
-                {/* Engineering Highlights Quick List */}
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
-                    Primary Objectives & Impact
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:border-[#ff6422]/50 transition-colors">
-                      <div className="w-8 h-8 rounded-xl bg-orange-100 text-[#ff6422] flex items-center justify-center mb-3">
-                        <Zap className="w-4 h-4" />
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-900">Performance First</h4>
-                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                        Engineered with clean asset pipelines and fast render speeds across diverse network conditions.
-                      </p>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:border-[#ff6422]/50 transition-colors">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-900">Reliability & Code Quality</h4>
-                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                        Adheres to strict input sanitization, data validation, modular architecture, and error recovery patterns.
-                      </p>
+                {/* Deliverables / Key Features preview from DB when available */}
+                {featuresList.length > 0 && (
+                  <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+                    <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
+                      Highlights & Deliverables
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {featuresList.map((feat, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-start gap-3"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-[#ff6422] shrink-0 mt-0.5" />
+                          <span className="text-xs sm:text-sm font-semibold text-slate-800 leading-snug">
+                            {feat}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
             {/* TAB 2: FEATURES */}
-            {activeTab === 'features' && (
+            {activeTab === 'features' && featuresList.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -484,10 +514,10 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#ff6422]" />
-                    Key Features & Functional Highlights
+                    Key Features & Deliverables
                   </h2>
                   <span className="text-xs font-mono font-bold text-slate-500">
-                    {featuresList.length} Highlights
+                    {featuresList.length} Items
                   </span>
                 </div>
 
@@ -524,38 +554,41 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                   System Architecture & Implementation
                 </h2>
 
-                <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-mono text-[#ff6422] uppercase tracking-wider font-bold">
-                    <Terminal className="w-4 h-4" />
-                    <span>Technical Architecture Specs</span>
+                {project.architecture && (
+                  <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-mono text-[#ff6422] uppercase tracking-wider font-bold">
+                      <Terminal className="w-4 h-4" />
+                      <span>Technical Architecture Specs</span>
+                    </div>
+                    <p className="text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                      {project.architecture}
+                    </p>
                   </div>
-                  <p className="text-slate-700 text-sm sm:text-base leading-relaxed whitespace-pre-line">
-                    {project.architecture ||
-                      `This system is organized with strict separation of concerns between presentation, business logic, and persistent storage layers.\n\n• Client Layer: Built with reactive, typed components maximizing UI predictability and minimal re-render footprints.\n• Network & API Layer: Asynchronous request handling with defensive error boundaries and caching.\n• Data Architecture: Validated schemas ensuring consistent state propagation and zero-loss mutations.`}
-                  </p>
-                </div>
+                )}
 
                 {/* Tech Breakdown Grid */}
-                <div className="space-y-3 pt-3">
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
-                    Technology Breakdown
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {project.techStack.map((tech, tIdx) => (
-                      <span
-                        key={tIdx}
-                        className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm font-mono font-semibold transition-all hover:border-[#ff6422] shadow-xs"
-                      >
-                        {tech}
-                      </span>
-                    ))}
+                {project.techStack && project.techStack.length > 0 && (
+                  <div className="space-y-3 pt-1">
+                    <h3 className="text-xs font-mono uppercase tracking-wider text-slate-500 font-bold">
+                      Technology Breakdown
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {project.techStack.map((tech, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm font-mono font-semibold transition-all hover:border-[#ff6422] shadow-xs"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             )}
 
             {/* TAB 4: GALLERY */}
-            {activeTab === 'gallery' && (
+            {activeTab === 'gallery' && allImages.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -577,16 +610,18 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                     <div
                       key={idx}
                       onClick={() => setSelectedImageIndex(idx)}
-                      className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-white aspect-video cursor-pointer hover:border-[#ff6422] hover:shadow-lg transition-all shadow-xs"
+                      className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video cursor-pointer hover:border-[#ff6422] hover:shadow-lg transition-all shadow-xs"
                     >
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Layers className="w-10 h-10 text-slate-300" />
+                      </div>
                       <img
                         src={imgUrl}
                         alt={`${project.title} screenshot ${idx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="relative z-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1000&q=80';
+                          (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
                       <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -612,7 +647,7 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                 </h3>
 
                 <div className="space-y-2.5">
-                  {project.liveUrl && project.liveUrl !== '#' ? (
+                  {project.liveUrl && project.liveUrl !== '#' && (
                     <a
                       href={project.liveUrl}
                       target="_blank"
@@ -623,16 +658,9 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
                       <span>Launch Live Application</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </a>
-                  ) : (
-                    <button
-                      disabled
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-100 text-slate-400 font-medium text-xs cursor-not-allowed border border-slate-200"
-                    >
-                      Demo Available Upon Request
-                    </button>
                   )}
 
-                  {project.githubUrl && (
+                  {project.githubUrl && project.githubUrl !== '#' && (
                     <a
                       href={project.githubUrl}
                       target="_blank"
@@ -648,47 +676,59 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               </div>
 
               {/* Technologies */}
-              <div className="pt-5 border-t border-slate-100">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3 font-bold">
-                  Tech Stack
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {project.techStack.map((tech, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-mono font-semibold border border-slate-200/80"
-                    >
-                      {tech}
-                    </span>
-                  ))}
+              {project.techStack && project.techStack.length > 0 && (
+                <div className="pt-5 border-t border-slate-100">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3 font-bold">
+                    Tech Stack
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.techStack.map((tech, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs font-mono font-semibold border border-slate-200/80"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Metadata Details */}
-              <div className="pt-5 border-t border-slate-100 space-y-2.5 text-xs">
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Domain Category</span>
-                  <span className="font-bold text-slate-900">{project.category}</span>
+              {/* Metadata Details (Strictly from DB) */}
+              {(project.category || project.tag || project.role || project.duration || project.metrics) && (
+                <div className="pt-5 border-t border-slate-100 space-y-2.5 text-xs">
+                  {project.category && (
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Domain Category</span>
+                      <span className="font-bold text-slate-900">{project.category}</span>
+                    </div>
+                  )}
+                  {project.tag && (
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Engineering Focus</span>
+                      <span className="font-bold text-slate-900">{project.tag}</span>
+                    </div>
+                  )}
+                  {project.role && (
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Author Role</span>
+                      <span className="font-bold text-slate-900">{project.role}</span>
+                    </div>
+                  )}
+                  {project.duration && (
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Timeline</span>
+                      <span className="font-bold text-slate-900">{project.duration}</span>
+                    </div>
+                  )}
+                  {project.metrics && (
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span>Key Metric</span>
+                      <span className="font-black text-[#ff6422]">{project.metrics}</span>
+                    </div>
+                  )}
                 </div>
-                {project.tag && (
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Engineering Focus</span>
-                    <span className="font-bold text-slate-900">{project.tag}</span>
-                  </div>
-                )}
-                {project.role && (
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Author Role</span>
-                    <span className="font-bold text-slate-900">{project.role}</span>
-                  </div>
-                )}
-                {project.metrics && (
-                  <div className="flex items-center justify-between text-slate-600">
-                    <span>Key Metric</span>
-                    <span className="font-black text-[#ff6422]">{project.metrics}</span>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Inquire / Hire CTA */}
               {onOpenHireModal && (
@@ -727,16 +767,18 @@ export const ProjectDocPage: React.FC<ProjectDocPageProps> = ({
               className="group p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-white border border-slate-200 hover:border-[#ff6422] transition-all cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs hover:shadow-md"
             >
               <div className="flex items-center gap-4 min-w-0">
-                <div className="w-20 h-14 sm:w-28 sm:h-18 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-xs">
-                  <img
-                    src={nextProject.image}
-                    alt={nextProject.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80';
-                    }}
-                  />
+                <div className="relative w-20 h-14 sm:w-28 sm:h-18 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-xs flex items-center justify-center">
+                  <Layers className="w-6 h-6 text-slate-300" />
+                  {nextProject.image && (
+                    <img
+                      src={nextProject.image}
+                      alt={nextProject.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="min-w-0">
                   <span className="text-[11px] font-mono uppercase tracking-wider text-[#ff6422] font-bold">

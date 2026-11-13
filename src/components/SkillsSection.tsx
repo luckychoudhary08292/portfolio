@@ -19,23 +19,15 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { SkillCategoryItem, SkillItem } from '../data/portfolioData';
+import { SkillCategoryItem } from '../data/portfolioData';
 import { usePortfolio } from '../context/PortfolioContext';
 
 interface SkillsSectionProps {
   onSelectSkillCategory: (cat: SkillCategoryItem) => void;
 }
 
-interface SoftSkillCategory {
-  id: string;
-  category: string;
-  type: 'soft';
-  image?: string;
-  items: SkillItem[];
-}
-
 export const SkillsSection: React.FC<SkillsSectionProps> = ({ onSelectSkillCategory }) => {
-  const { skills } = usePortfolio();
+  const { skills, isLoading } = usePortfolio();
   const [activeTab, setActiveTab] = useState<'hard' | 'soft'>('hard');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -288,59 +280,11 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ onSelectSkillCateg
     );
   };
 
-  // Dedicated Soft Skills Categories (Loaded from DB if available, fallback for smooth preview)
-  const defaultSoftSkillCategories: SoftSkillCategory[] = [
-    {
-      id: 'soft-1',
-      category: 'Team Collaboration & Communication',
-      type: 'soft',
-      items: [
-        { name: 'Active Listening', badge: 'listen' },
-        { name: 'Cross-Functional Teamwork', badge: 'team' },
-        { name: 'Technical Presentation', badge: 'presentation' },
-        { name: 'Conflict Resolution', badge: 'empathy' },
-        { name: 'Constructive Code Reviews', badge: 'dialogue' },
-        { name: 'Stakeholder Communication', badge: 'comm' },
-      ],
-    },
-    {
-      id: 'soft-2',
-      category: 'Problem Solving & Critical Thinking',
-      type: 'soft',
-      items: [
-        { name: 'Root Cause Analysis', badge: 'analytical' },
-        { name: 'Algorithmic Reasoning', badge: 'critical' },
-        { name: 'Creative Troubleshooting', badge: 'problem' },
-        { name: 'Fast Technical Assimilation', badge: 'learning' },
-        { name: 'Decision Making Under Uncertainty', badge: 'analytical' },
-        { name: 'Systems Thinking', badge: 'critical' },
-      ],
-    },
-    {
-      id: 'soft-3',
-      category: 'Execution & Leadership',
-      type: 'soft',
-      items: [
-        { name: 'Ownership Mindset', badge: 'ownership' },
-        { name: 'Agile & Sprint Adaptability', badge: 'agile' },
-        { name: 'Deadline & Time Management', badge: 'deadline' },
-        { name: 'Proactive Mentorship', badge: 'mentorship' },
-        { name: 'Strategic Prioritization', badge: 'priority' },
-        { name: 'Engineering Leadership', badge: 'leader' },
-      ],
-    },
-  ];
-
-  // Distinguish Hard and Soft Skills from database categories
+  // Distinguish Hard and Soft Skills strictly from database categories
   const dbHardSkills = skills.filter((c) => !c.type || c.type === 'hard');
   const dbSoftSkills = skills.filter((c) => c.type === 'soft');
 
-  const currentDisplayList =
-    activeTab === 'hard'
-      ? dbHardSkills
-      : dbSoftSkills.length > 0
-      ? dbSoftSkills
-      : defaultSoftSkillCategories;
+  const currentDisplayList = activeTab === 'hard' ? dbHardSkills : dbSoftSkills;
 
   return (
     <section
@@ -423,17 +367,35 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ onSelectSkillCateg
           className="flex gap-6 overflow-x-auto scroll-smooth pb-8 pt-2 snap-x snap-mandatory select-none"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {currentDisplayList.map((category, idx) => (
+          {isLoading && skills.length === 0 ? (
+            [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="w-[320px] sm:w-[370px] lg:w-[410px] h-[300px] shrink-0 rounded-[28px] bg-[#17181d] border border-white/10 p-6 sm:p-7 animate-pulse"
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-white/10" />
+                  <div className="w-40 h-6 rounded-lg bg-white/10" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[0, 1, 2, 3, 4, 5].map((j) => (
+                    <div key={j} className="h-14 rounded-xl bg-white/5" />
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : currentDisplayList.length === 0 ? (
+            <div className="w-full py-12 text-center rounded-[28px] bg-[#17181d] border border-white/10 text-slate-400 text-sm">
+              No {activeTab === 'hard' ? 'hard' : 'soft'} skill categories found in database.
+            </div>
+          ) : (
+            currentDisplayList.map((category, idx) => (
             <motion.div
-              key={category.id || idx}
+              key={category.id || category._id || idx}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.08 }}
-              onClick={() => {
-                if ('items' in category && activeTab === 'hard') {
-                  onSelectSkillCategory(category as SkillCategoryItem);
-                }
-              }}
+              onClick={() => onSelectSkillCategory(category)}
               className="w-[320px] sm:w-[370px] lg:w-[410px] shrink-0 snap-start rounded-[28px] bg-[#17181d] border border-white/10 hover:border-[#ff6422]/60 p-6 sm:p-7 backdrop-blur-md transition-all duration-300 shadow-xl hover:-translate-y-1.5 flex flex-col justify-start group cursor-pointer"
             >
               {/* Category Logo & Category Name Aligned Horizontally */}
@@ -488,7 +450,8 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({ onSelectSkillCateg
                 ))}
               </div>
             </motion.div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </section>

@@ -9,101 +9,25 @@ import { motion } from 'motion/react';
 import { ProjectItem } from '../data/portfolioData';
 import { usePortfolio } from '../context/PortfolioContext';
 
-// High-fidelity fallback projects if database is empty or loading
-const FALLBACK_PROJECTS: ProjectItem[] = [
-  {
-    id: 'proj-1',
-    title: 'DevSync AI – Autonomous Code Intelligence',
-    category: 'AI & Developer Tools',
-    tag: 'Full-Stack / AI',
-    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1400&q=80',
-    description:
-      'Autonomous AI review agent scanning pull requests, predicting architectural regressions, and automating unit test generation.',
-    techStack: ['Next.js 14', 'TypeScript', 'Gemini 2.5', 'Docker', 'PostgreSQL', 'Tailwind CSS'],
-    githubUrl: 'https://github.com/lucky-choudhary/devsync-ai',
-    liveUrl: 'https://devsync-ai.preview.app',
-    role: 'Lead Architect',
-    duration: '3 Months',
-    featured: true,
-  },
-  {
-    id: 'proj-2',
-    title: 'CloudScale K8s – Multi-Region Mesh Orchestrator',
-    category: 'Cloud & DevOps',
-    tag: 'DevOps / Infra',
-    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80',
-    description:
-      'Zero-downtime traffic mesh balancer with real-time failover routing across 4 cloud regions with sub-25ms global latency.',
-    techStack: ['Go', 'Kubernetes', 'Terraform', 'gRPC', 'Prometheus', 'Grafana'],
-    githubUrl: 'https://github.com/lucky-choudhary/cloudscale-mesh',
-    liveUrl: 'https://cloudscale.preview.app',
-    role: 'DevOps Engineer',
-    duration: '4 Months',
-    featured: true,
-  },
-  {
-    id: 'proj-3',
-    title: 'FinFlow Core – Distributed Ledger Engine',
-    category: 'Fintech & Systems',
-    tag: 'Fintech',
-    image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1400&q=80',
-    description:
-      'Double-entry high-throughput distributed transaction platform processing 10,000+ transfers per second with strict ACID safety.',
-    techStack: ['Rust', 'Node.js', 'Redis Cluster', 'Kafka', 'PostgreSQL', 'AWS'],
-    githubUrl: 'https://github.com/lucky-choudhary/finflow-engine',
-    liveUrl: 'https://finflow.preview.app',
-    role: 'Backend Architect',
-    duration: '2.5 Months',
-    featured: true,
-  },
-  {
-    id: 'proj-4',
-    title: 'NeuroVision Studio – Edge AI Diagnostics',
-    category: 'Computer Vision',
-    tag: 'Machine Learning',
-    image: 'https://images.unsplash.com/photo-1507146426996-ef0538821e1b?auto=format&fit=crop&w=1400&q=80',
-    description:
-      'Real-time edge computer vision model suite optimizing neural inference on embedded devices for medical diagnostic scanning.',
-    techStack: ['Python', 'PyTorch', 'ONNX Runtime', 'FastAPI', 'React', 'OpenCV'],
-    githubUrl: 'https://github.com/lucky-choudhary/neurovision-edge',
-    liveUrl: 'https://neurovision.preview.app',
-    role: 'ML Engineer',
-    duration: '3 Months',
-    featured: true,
-  },
-  {
-    id: 'proj-5',
-    title: 'PulseIoT – Real-Time Telemetry Platform',
-    category: 'IoT & Streaming',
-    tag: 'Distributed Systems',
-    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1400&q=80',
-    description:
-      'Low-latency WebSocket event streaming broker ingesting telemetry from 50,000+ concurrent sensor devices in real-time.',
-    techStack: ['TypeScript', 'Express', 'Apache Kafka', 'TimescaleDB', 'React', 'Tailwind'],
-    githubUrl: 'https://github.com/lucky-choudhary/pulse-iot',
-    liveUrl: 'https://pulse-iot.preview.app',
-    role: 'Full-Stack Developer',
-    duration: '2 Months',
-    featured: true,
-  },
-];
-
 interface PortfolioSectionProps {
   onOpenProjectDoc?: (project: ProjectItem) => void;
 }
 
 export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjectDoc }) => {
-  const { projects: liveProjects } = usePortfolio();
+  const { projects: liveProjects, isLoading } = usePortfolio();
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const lastScrollTime = useRef<number>(0);
   const carouselStageRef = useRef<HTMLDivElement>(null);
 
-  // Use live database projects if available, otherwise use high-fidelity fallback projects
-  const projects = useMemo(() => {
-    return liveProjects && liveProjects.length > 0 ? liveProjects : FALLBACK_PROJECTS;
-  }, [liveProjects]);
+  const projects = useMemo(() => liveProjects || [], [liveProjects]);
 
   const totalProjects = projects.length;
+
+  useEffect(() => {
+    if (totalProjects > 0 && currentIndex >= totalProjects) {
+      setCurrentIndex(0);
+    }
+  }, [totalProjects, currentIndex]);
 
   const handleNext = useCallback(() => {
     if (totalProjects === 0) return;
@@ -167,9 +91,28 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
               transformStyle: 'preserve-3d',
             }}
           >
-            {totalProjects === 0 ? (
+            {isLoading && totalProjects === 0 ? (
+              <div className="w-[90vw] sm:w-[540px] md:w-[620px] lg:w-[690px] xl:w-[740px] max-w-[92vw] aspect-[16/10] rounded-3xl bg-slate-100 border border-slate-200 animate-pulse flex flex-col justify-between p-6">
+                <div className="flex justify-between">
+                  <div className="w-28 h-7 rounded-full bg-slate-200" />
+                  <div className="flex gap-2">
+                    <div className="w-9 h-9 rounded-full bg-slate-200" />
+                    <div className="w-9 h-9 rounded-full bg-slate-200" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="w-2/3 h-7 rounded-lg bg-slate-200" />
+                  <div className="w-full h-4 rounded-lg bg-slate-200" />
+                  <div className="flex gap-2">
+                    <div className="w-16 h-5 rounded-md bg-slate-200" />
+                    <div className="w-16 h-5 rounded-md bg-slate-200" />
+                    <div className="w-16 h-5 rounded-md bg-slate-200" />
+                  </div>
+                </div>
+              </div>
+            ) : totalProjects === 0 ? (
               <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 text-slate-500">
-                No projects available.
+                No projects found in database.
               </div>
             ) : (
               projects.map((item, index) => {
@@ -265,25 +208,23 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
                         : 'shadow-[0_14px_32px_rgba(0,0,0,0.45)] border border-slate-700/60 hover:opacity-95'
                     }`}
                   >
-                    {/* Project Image background */}
-                    {item.image ? (
+                    {/* Project Image background with clean vector placeholder underneath */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black flex items-center justify-center p-6 text-center">
+                      <Layers className="w-16 h-16 text-[#ff6422]/40 mb-2" />
+                    </div>
+                    {item.image && (
                       <img
                         src={item.image}
                         alt={item.title}
                         loading="lazy"
                         decoding="async"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80';
+                          (e.target as HTMLImageElement).style.display = 'none';
                         }}
-                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out ${
+                        className={`relative z-0 w-full h-full object-cover transition-transform duration-700 ease-out ${
                           isCenter ? 'group-hover:scale-105' : ''
                         }`}
                       />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black flex items-center justify-center p-6 text-center">
-                        <Layers className="w-16 h-16 text-[#ff6422]/40 mb-2" />
-                      </div>
                     )}
 
                     {/* Dark scrim overlay so typography and icons are ultra-crisp */}
@@ -292,9 +233,13 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
                     {/* TOP CORNER: Left = Category/Tag Badge; Right = Doc Logo + GitHub Logo + Arrow Logo */}
                     <div className="absolute top-0 inset-x-0 z-20 p-3.5 sm:p-5 flex items-center justify-between gap-2">
                       {/* Top Left: Category Badge */}
-                      <span className="px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md text-[#ff6422] font-bold text-xs border border-[#ff6422]/30 shadow-md tracking-wide uppercase">
-                        {item.category || item.tag || 'Project'}
-                      </span>
+                      {(item.category || item.tag) ? (
+                        <span className="px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md text-[#ff6422] font-bold text-xs border border-[#ff6422]/30 shadow-md tracking-wide uppercase">
+                          {item.category || item.tag}
+                        </span>
+                      ) : (
+                        <span />
+                      )}
 
                       {/* Top Right: Doc Logo + GitHub Logo + Arrow Logo */}
                       <div className="flex items-center gap-2">
@@ -314,31 +259,35 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
                           <FileText size={17} className="text-slate-100 group-hover/doc:text-white transition-colors" />
                         </button>
 
-                        {/* 2. GitHub Logo: Redirects to GitHub Repo */}
-                        <a
-                          href={item.githubUrl || 'https://github.com'}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="View GitHub Repository"
-                          aria-label={`View GitHub repository for ${item.title}`}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/75 backdrop-blur-md border border-white/25 text-white hover:bg-[#ff6422] hover:border-[#ff6422] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/gh"
-                        >
-                          <Github size={17} className="text-slate-100 group-hover/gh:text-white transition-colors" />
-                        </a>
+                        {/* 2. GitHub Logo: Redirects to GitHub Repo (only if URL is provided in DB) */}
+                        {item.githubUrl && item.githubUrl !== '#' && (
+                          <a
+                            href={item.githubUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="View GitHub Repository"
+                            aria-label={`View GitHub repository for ${item.title}`}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/75 backdrop-blur-md border border-white/25 text-white hover:bg-[#ff6422] hover:border-[#ff6422] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/gh"
+                          >
+                            <Github size={17} className="text-slate-100 group-hover/gh:text-white transition-colors" />
+                          </a>
+                        )}
 
-                        {/* 3. Arrow Logo: Project Deployment Access */}
-                        <a
-                          href={item.liveUrl && item.liveUrl !== '#' ? item.liveUrl : (item.githubUrl || 'https://github.com')}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Access Live Deployment"
-                          aria-label={`Access live deployment for ${item.title}`}
-                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6422] backdrop-blur-md border border-[#ff6422] text-white hover:bg-[#ff7b42] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/arrow"
-                        >
-                          <ArrowUpRight size={19} className="transition-transform group-hover/arrow:translate-x-0.5 group-hover/arrow:-translate-y-0.5" />
-                        </a>
+                        {/* 3. Arrow Logo: Project Deployment Access (only if URL is provided in DB) */}
+                        {((item.liveUrl && item.liveUrl !== '#') || (item.githubUrl && item.githubUrl !== '#')) && (
+                          <a
+                            href={item.liveUrl && item.liveUrl !== '#' ? item.liveUrl : item.githubUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title={item.liveUrl && item.liveUrl !== '#' ? 'Access Live Deployment' : 'Open Repository'}
+                            aria-label={`Access link for ${item.title}`}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6422] backdrop-blur-md border border-[#ff6422] text-white hover:bg-[#ff7b42] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-110 active:scale-95 cursor-pointer group/arrow"
+                          >
+                            <ArrowUpRight size={19} className="transition-transform group-hover/arrow:translate-x-0.5 group-hover/arrow:-translate-y-0.5" />
+                          </a>
+                        )}
                       </div>
                     </div>
 

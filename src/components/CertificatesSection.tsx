@@ -12,78 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePortfolio } from '../context/PortfolioContext';
 import { CertificateItem } from '../data/portfolioData';
 
-// High-fidelity fallback certificates if database is empty or still loading
-const FALLBACK_CERTIFICATES: CertificateItem[] = [
-  {
-    id: '1',
-    title: 'Meta Certified Front-End Developer Specialization',
-    issuer: 'Meta / Coursera',
-    issueDate: 'Aug 2024',
-    category: 'Web Development',
-    credentialId: 'META-FED-884920',
-    verifyUrl: 'https://coursera.org/verify/professional-cert/META-FED',
-    image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1400&q=80',
-    skills: ['React', 'JavaScript (ES6+)', 'HTML5 & CSS3', 'UI/UX Design', 'Version Control'],
-  },
-  {
-    id: '2',
-    title: 'AWS Certified Solutions Architect – Associate',
-    issuer: 'Amazon Web Services',
-    issueDate: 'Jan 2024',
-    category: 'Cloud & DevOps',
-    credentialId: 'AWS-SAA-901823',
-    verifyUrl: 'https://aws.amazon.com/verification',
-    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80',
-    skills: ['AWS Cloud', 'Serverless Architecture', 'S3 & EC2', 'VPC & IAM', 'Cloud Security'],
-  },
-  {
-    id: '3',
-    title: 'Google Professional Machine Learning Engineer',
-    issuer: 'Google Cloud Platform',
-    issueDate: 'Nov 2023',
-    category: 'AI & Machine Learning',
-    credentialId: 'GCP-MLE-449102',
-    verifyUrl: 'https://google.accredible.com/verify',
-    image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1400&q=80',
-    skills: ['Vertex AI', 'TensorFlow', 'Python ML', 'Model Deployment', 'Data Engineering'],
-  },
-  {
-    id: '4',
-    title: 'Full Stack Open – Deep Dive into Modern Web Development',
-    issuer: 'University of Helsinki',
-    issueDate: 'Jun 2023',
-    category: 'Web Development',
-    credentialId: 'FSO-HELSINKI-7721',
-    verifyUrl: 'https://fullstackopen.com/en/stats',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1400&q=80',
-    skills: ['Node.js', 'Express', 'React', 'MongoDB', 'GraphQL', 'TypeScript', 'CI/CD'],
-  },
-  {
-    id: '5',
-    title: 'Professional Scrum Master™ I (PSM I)',
-    issuer: 'Scrum.org',
-    issueDate: 'Mar 2023',
-    category: 'Cybersecurity & Methods',
-    credentialId: 'PSM-991204',
-    verifyUrl: 'https://scrum.org/certificates',
-    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1400&q=80',
-    skills: ['Agile Leadership', 'Scrum Framework', 'Sprint Planning', 'Team Facilitation'],
-  },
-  {
-    id: '6',
-    title: 'Python for Data Science and Machine Learning Bootcamp',
-    issuer: 'Udemy / Jose Portilla',
-    issueDate: 'Oct 2022',
-    category: 'Data Science & Analytics',
-    credentialId: 'UC-DATA-55018',
-    verifyUrl: 'https://udemy.com/certificate/UC-DATA',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1400&q=80',
-    skills: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn', 'Data Visualization', 'Seaborn'],
-  },
-];
-
 export const CertificatesSection: React.FC = () => {
-  const { certificates: liveCertificates } = usePortfolio();
+  const { certificates: liveCertificates, isLoading } = usePortfolio();
   const [fullscreenImageCert, setFullscreenImageCert] = useState<CertificateItem | null>(null);
 
   // Filter States: Default 360 view, default category 'All', default auto-sweep ON
@@ -99,10 +29,7 @@ export const CertificatesSection: React.FC = () => {
   const carouselStageRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Use live database certificates if available, otherwise use high-fidelity fallback
-  const rawCertificates = useMemo(() => {
-    return liveCertificates && liveCertificates.length > 0 ? liveCertificates : FALLBACK_CERTIFICATES;
-  }, [liveCertificates]);
+  const rawCertificates = useMemo(() => liveCertificates || [], [liveCertificates]);
 
   // Compute all database categories dynamically with item counts
   const categoriesList = useMemo(() => {
@@ -398,9 +325,20 @@ export const CertificatesSection: React.FC = () => {
                 transformStyle: 'preserve-3d',
               }}
             >
-              {totalCerts === 0 ? (
+              {isLoading && rawCertificates.length === 0 ? (
+                <div className="w-[88vw] sm:w-[480px] md:w-[540px] lg:w-[600px] xl:w-[650px] max-w-[90vw] aspect-[16/10] rounded-3xl bg-slate-100 border border-slate-200 animate-pulse flex flex-col justify-between p-6">
+                  <div className="flex justify-between">
+                    <div className="w-32 h-7 rounded-full bg-slate-200" />
+                    <div className="w-24 h-7 rounded-full bg-slate-200" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="w-3/4 h-7 rounded-lg bg-slate-200" />
+                    <div className="w-40 h-5 rounded-md bg-slate-200" />
+                  </div>
+                </div>
+              ) : totalCerts === 0 ? (
                 <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 text-slate-500">
-                  No certificates available in this category.
+                  {rawCertificates.length === 0 ? 'No certificates found in database.' : 'No certificates available in this category.'}
                 </div>
               ) : (
                 filteredCertificates.map((cert, index) => {
@@ -582,65 +520,77 @@ export const CertificatesSection: React.FC = () => {
             VIEW MODE 2: GRID VIEW (Selectable from Filter Popover)
             ============================================================ */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2 pb-6">
-            {filteredCertificates.map((cert, idx) => {
-              const categoryName = cert.category || 'General';
-              return (
-                <motion.div
-                  key={cert.id || idx}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  onClick={() => setFullscreenImageCert(cert)}
-                  className="relative aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer bg-slate-950 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 group"
-                >
-                  {/* Image background */}
-                  {cert.image ? (
-                    <img
-                      src={cert.image}
-                      alt={cert.title}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-6 text-center">
-                      <Award className="w-12 h-12 text-[#ff6422]/40 mb-2" />
-                    </div>
-                  )}
-
-                  {/* Scrim Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/30 pointer-events-none" />
-
-                  {/* Top Badges */}
-                  <div className="absolute top-0 inset-x-0 z-10 p-4 flex items-center justify-between pointer-events-none gap-2">
-                    <span className="px-3 py-1 rounded-full bg-black/80 backdrop-blur-md text-white font-bold text-xs border border-white/20 shadow-md">
-                      {cert.issuer}
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#ff6422]/90 backdrop-blur-md text-white font-semibold text-xs">
-                      {categoryName}
-                    </span>
-                  </div>
-
-                  {/* Bottom Info */}
-                  <div className="absolute bottom-0 inset-x-0 z-20 p-5 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-10 pb-5 pointer-events-none flex flex-col justify-end">
-                    <h3 className="text-base sm:text-lg font-extrabold text-white leading-tight drop-shadow-md group-hover:text-orange-400 transition-colors">
-                      {cert.title}
-                    </h3>
-
-                    {cert.credentialId && (
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-[11px] font-mono text-amber-300 font-semibold bg-black/70 px-2 py-0.5 rounded-md border border-amber-400/30">
-                          ID: {cert.credentialId}
-                        </span>
+          isLoading && rawCertificates.length === 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2 pb-6">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="aspect-[16/10] rounded-3xl bg-slate-100 border border-slate-200 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredCertificates.length === 0 ? (
+            <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 text-slate-500 my-4">
+              {rawCertificates.length === 0 ? 'No certificates found in database.' : 'No certificates available in this category.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2 pb-6">
+              {filteredCertificates.map((cert, idx) => {
+                const categoryName = cert.category || 'General';
+                return (
+                  <motion.div
+                    key={cert.id || idx}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => setFullscreenImageCert(cert)}
+                    className="relative aspect-[16/10] rounded-3xl overflow-hidden cursor-pointer bg-slate-950 border border-slate-200/90 shadow-sm hover:shadow-xl hover:border-orange-500/40 transition-all duration-300 group"
+                  >
+                    {/* Image background */}
+                    {cert.image ? (
+                      <img
+                        src={cert.image}
+                        alt={cert.title}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-6 text-center">
+                        <Award className="w-12 h-12 text-[#ff6422]/40 mb-2" />
                       </div>
                     )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+
+                    {/* Scrim Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/30 pointer-events-none" />
+
+                    {/* Top Badges */}
+                    <div className="absolute top-0 inset-x-0 z-10 p-4 flex items-center justify-between pointer-events-none gap-2">
+                      <span className="px-3 py-1 rounded-full bg-black/80 backdrop-blur-md text-white font-bold text-xs border border-white/20 shadow-md">
+                        {cert.issuer}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#ff6422]/90 backdrop-blur-md text-white font-semibold text-xs">
+                        {categoryName}
+                      </span>
+                    </div>
+
+                    {/* Bottom Info */}
+                    <div className="absolute bottom-0 inset-x-0 z-20 p-5 bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-10 pb-5 pointer-events-none flex flex-col justify-end">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white leading-tight drop-shadow-md group-hover:text-orange-400 transition-colors">
+                        {cert.title}
+                      </h3>
+
+                      {cert.credentialId && (
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="text-[11px] font-mono text-amber-300 font-semibold bg-black/70 px-2 py-0.5 rounded-md border border-amber-400/30">
+                            ID: {cert.credentialId}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 

@@ -127,7 +127,7 @@ export const defaultProfile: ProfileData = {
   github: '',
   linkedin: '',
   leetcode: '',
-  twitter: 'https://x.com/_its_lucky',
+  twitter: '',
   resumeUrl: '',
   heroImage: '',
   whyHireMeImage: '',

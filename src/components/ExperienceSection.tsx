@@ -23,90 +23,13 @@ const MILESTONE_COLORS = [
   { border: '#ff6422', text: '#ea580c', bg: 'rgba(255, 100, 34, 0.12)', glow: 'rgba(255, 100, 34, 0.35)' }, // 12: Orange
 ];
 
-// High-fidelity fallback milestone data strictly conforming to title, subtitle, date, place, order
-const FALLBACK_EXPERIENCES: ExperienceItem[] = [
-  {
-    id: 'exp-1',
-    title: 'B.Tech Computer Science & Engineering',
-    subtitle: 'Arya College of Engineering & IT',
-    date: '2021 – 2025',
-    place: 'Jaipur, Rajasthan',
-    order: 1,
-    role: 'B.Tech Computer Science & Engineering',
-    company: 'Arya College of Engineering & IT',
-    period: '2021 – 2025',
-    location: 'Jaipur, Rajasthan',
-    description: 'Foundations of Algorithms, Distributed Systems, Cloud Architecture, and Core Web Technologies with 8.8+ GPA.',
-    type: 'education',
-  },
-  {
-    id: 'exp-2',
-    title: 'Technical Lead & Web Dev Mentor',
-    subtitle: 'Google Developer Student Clubs (GDSC)',
-    date: '2022 – 2023',
-    place: 'Campus Chapter, Jaipur',
-    order: 2,
-    role: 'Technical Lead & Web Dev Mentor',
-    company: 'Google Developer Student Clubs (GDSC)',
-    period: '2022 – 2023',
-    location: 'Campus Chapter, Jaipur',
-    description: 'Led technical bootcamps on React, TypeScript, and open-source workflows for 400+ student developers.',
-    type: 'leadership',
-  },
-  {
-    id: 'exp-3',
-    title: 'Frontend Engineering Intern',
-    subtitle: 'InnovateX Labs',
-    date: 'June 2023 – Aug 2023',
-    place: 'Bengaluru / Remote',
-    order: 3,
-    role: 'Frontend Engineering Intern',
-    company: 'InnovateX Labs',
-    period: 'June 2023 – Aug 2023',
-    location: 'Bengaluru / Remote',
-    description: 'Built high-throughput telemetry interfaces in Next.js & Tailwind CSS, cutting render latency by 35%.',
-    type: 'work',
-  },
-  {
-    id: 'exp-4',
-    title: 'Software Engineer Intern',
-    subtitle: 'CloudForge Systems',
-    date: 'Jan 2024 – June 2024',
-    place: 'Gurugram, India',
-    order: 4,
-    role: 'Software Engineer Intern',
-    company: 'CloudForge Systems',
-    period: 'Jan 2024 – June 2024',
-    location: 'Gurugram, India',
-    description: 'Engineered Node.js microservices, Dockerized backend workflows, and established automated CI/CD pipelines.',
-    type: 'work',
-  },
-  {
-    id: 'exp-5',
-    title: 'Full-Stack Software Engineer',
-    subtitle: 'Next-Gen SWE Career (Till Now)',
-    date: '2024 – Present',
-    place: 'Open to Global Opportunities',
-    order: 5,
-    role: 'Full-Stack Software Engineer',
-    company: 'Next-Gen SWE Career (Till Now)',
-    period: '2024 – Present',
-    location: 'Open to Global Opportunities',
-    description: 'Architecting scalable cloud applications, full-stack AI platforms, and active open-source contributions.',
-    type: 'work',
-  },
-];
-
 export const ExperienceSection: React.FC = () => {
-  const { experiences: liveExperiences } = usePortfolio();
-
-  const rawExperiences = useMemo(() => {
-    return liveExperiences && liveExperiences.length > 0 ? liveExperiences : FALLBACK_EXPERIENCES;
-  }, [liveExperiences]);
+  const { experiences: liveExperiences, profile, isLoading } = usePortfolio();
 
   const experiences = useMemo(() => {
-    return [...rawExperiences].sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [rawExperiences]);
+    const list = liveExperiences || [];
+    return [...list].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [liveExperiences]);
 
   // Highway Geometry Constants (Single Continuous SVG Coordinate Plane - Widened Horizontal Span)
   const VIEW_LEFT = -50;
@@ -229,6 +152,22 @@ export const ExperienceSection: React.FC = () => {
           </p>
         </div>
 
+        {isLoading && experiences.length === 0 ? (
+          <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-44 rounded-2xl bg-white border border-slate-200 animate-pulse p-6 space-y-3">
+                <div className="w-28 h-5 rounded-full bg-slate-200" />
+                <div className="w-3/4 h-6 rounded-lg bg-slate-200" />
+                <div className="w-1/2 h-4 rounded-lg bg-slate-200" />
+              </div>
+            ))}
+          </div>
+        ) : experiences.length === 0 ? (
+          <div className="max-w-xl mx-auto text-center p-8 bg-white rounded-3xl border border-slate-200 text-slate-500">
+            No experience milestones found in database.
+          </div>
+        ) : (
+          <>
         {/* ============================================================
             DESKTOP & TABLET: SINGLE CONTINUOUS VECTOR ROADMAP
             - 100% UNBROKEN road (Zero seams, zero misalignments)
@@ -525,12 +464,16 @@ export const ExperienceSection: React.FC = () => {
             </div>
             <div>
               <span className="text-xs font-bold text-slate-800 block">Present Milestone</span>
-              <span className="text-[11px] text-emerald-600 font-semibold block">
-                ● Open to Full-Stack & SWE Roles
-              </span>
+              {profile.title && (
+                <span className="text-[11px] text-emerald-600 font-semibold block">
+                  ● {profile.title}
+                </span>
+              )}
             </div>
           </div>
         </div>
+        </>
+        )}
 
 
       </div>

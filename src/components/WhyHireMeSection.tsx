@@ -8,7 +8,7 @@ interface WhyHireMeSectionProps {
 }
 
 export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireModal }) => {
-  const { profile } = usePortfolio();
+  const { profile, isLoading } = usePortfolio();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   return (
@@ -33,7 +33,7 @@ export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireMo
                 {profile.whyHireMeImage ? (
                   <img
                     src={profile.whyHireMeImage}
-                    alt={`Why Hire ${profile.name || 'Developer'}`}
+                    alt={profile.name || 'Portrait'}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
@@ -62,30 +62,55 @@ export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireMo
                 Why <span className="text-[#ff6422]">Hire me?</span>
               </h2>
 
-              <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
-                {profile.whyHireMeBio}
-              </p>
+              {isLoading && !profile.whyHireMeBio ? (
+                <div className="w-full max-w-xl space-y-2.5 mb-8 animate-pulse">
+                  <div className="h-4 bg-slate-200 rounded w-full" />
+                  <div className="h-4 bg-slate-200 rounded w-11/12" />
+                  <div className="h-4 bg-slate-200 rounded w-3/4" />
+                </div>
+              ) : profile.whyHireMeBio ? (
+                <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-8 max-w-xl">
+                  {profile.whyHireMeBio}
+                </p>
+              ) : null}
 
               {/* Two Stats Columns */}
-              <div className="grid grid-cols-2 gap-8 sm:gap-12 mb-10 w-full max-w-lg">
-                <div>
-                  <div className="text-3xl sm:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight font-sans">
-                    {profile.problemsSolved}
+              {isLoading && !profile.problemsSolved && !profile.projectsCompleted ? (
+                <div className="grid grid-cols-2 gap-8 sm:gap-12 mb-10 w-full max-w-lg animate-pulse">
+                  <div className="space-y-2">
+                    <div className="h-10 w-24 bg-slate-200 rounded-lg" />
+                    <div className="h-4 w-32 bg-slate-200 rounded" />
                   </div>
-                  <div className="text-sm sm:text-base font-medium text-slate-600 mt-1">
-                    DSA Problems Solved
+                  <div className="space-y-2">
+                    <div className="h-10 w-24 bg-slate-200 rounded-lg" />
+                    <div className="h-4 w-32 bg-slate-200 rounded" />
                   </div>
                 </div>
+              ) : (profile.problemsSolved || profile.projectsCompleted) ? (
+                <div className="grid grid-cols-2 gap-8 sm:gap-12 mb-10 w-full max-w-lg">
+                  {profile.problemsSolved && (
+                    <div>
+                      <div className="text-3xl sm:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight font-sans">
+                        {profile.problemsSolved}
+                      </div>
+                      <div className="text-sm sm:text-base font-medium text-slate-600 mt-1">
+                        DSA Problems Solved
+                      </div>
+                    </div>
+                  )}
 
-                <div>
-                  <div className="text-3xl sm:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight font-sans">
-                    {profile.projectsCompleted}
-                  </div>
-                  <div className="text-sm sm:text-base font-medium text-slate-600 mt-1">
-                    Full-Stack Projects
-                  </div>
+                  {profile.projectsCompleted && (
+                    <div>
+                      <div className="text-3xl sm:text-4xl xl:text-5xl font-extrabold text-slate-900 tracking-tight font-sans">
+                        {profile.projectsCompleted}
+                      </div>
+                      <div className="text-sm sm:text-base font-medium text-slate-600 mt-1">
+                        Full-Stack Projects
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : null}
 
               {/* Pill Button */}
               <button

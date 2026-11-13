@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Mail, Star, Trophy, ShieldCheck, CheckCircle2, Code2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Mail, Star, Trophy, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { SocialLinks } from './SocialLinks';
 
 export const DiscussionBanner: React.FC = () => {
-  const { profile, submitSubscriber } = usePortfolio();
+  const { profile, skills, submitSubscriber } = usePortfolio();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -21,18 +21,12 @@ export const DiscussionBanner: React.FC = () => {
     }
   };
 
-  const tickerItems = [
-    'Data Structures & Algorithms',
-    'Full-Stack TypeScript',
-    'React 19 & Next.js',
-    'Node.js & Express',
-    'System Design',
-    'MongoDB & PostgreSQL',
-    'Docker & Cloud Run',
-    'Microservices Architecture',
-    'Redis Caching',
-    'Git & CI/CD',
-  ];
+  const tickerItems = useMemo(() => {
+    const names = (skills || [])
+      .flatMap((cat) => (cat.items || []).map((item) => item.name))
+      .filter((name): name is string => Boolean(name && name.trim()));
+    return Array.from(new Set(names));
+  }, [skills]);
 
   return (
     <section className="pt-20 sm:pt-28 pb-12 bg-white relative overflow-hidden">
@@ -118,32 +112,34 @@ export const DiscussionBanner: React.FC = () => {
         </div>
       </div>
 
-      {/* Angled Dual Marquee Ticker Tape */}
-      <div className="relative w-full py-8 overflow-hidden select-none">
-        {/* Angled Orange Ribbon Background */}
-        <div className="w-[110%] -ml-[5%] bg-[#ff6422] py-4 transform -rotate-1 shadow-lg overflow-hidden flex items-center">
-          <div className="flex gap-8 whitespace-nowrap animate-marquee">
-            {[...tickerItems, ...tickerItems, ...tickerItems].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-8 text-white font-bold text-lg sm:text-xl tracking-wide">
-                <span>{item}</span>
-                <span className="text-white/80 text-xl font-normal">✦</span>
-              </div>
-            ))}
+      {/* Angled Dual Marquee Ticker Tape (Rendered from DB skills) */}
+      {tickerItems.length > 0 && (
+        <div className="relative w-full py-8 overflow-hidden select-none">
+          {/* Angled Orange Ribbon Background */}
+          <div className="w-[110%] -ml-[5%] bg-[#ff6422] py-4 transform -rotate-1 shadow-lg overflow-hidden flex items-center">
+            <div className="flex gap-8 whitespace-nowrap animate-marquee">
+              {[...tickerItems, ...tickerItems, ...tickerItems].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-8 text-white font-bold text-lg sm:text-xl tracking-wide">
+                  <span>{item}</span>
+                  <span className="text-white/80 text-xl font-normal">✦</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Angled White Ribbon */}
-        <div className="w-[110%] -ml-[5%] bg-white border-y border-slate-200 py-3.5 transform rotate-1 -mt-5 shadow-md overflow-hidden flex items-center">
-          <div className="flex gap-8 whitespace-nowrap animate-marquee-reverse">
-            {[...tickerItems, ...tickerItems, ...tickerItems].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-8 text-slate-900 font-extrabold text-lg sm:text-2xl tracking-tight">
-                <span>{item}</span>
-                <span className="text-[#ff6422] text-xl font-normal">✦</span>
-              </div>
-            ))}
+          {/* Angled White Ribbon */}
+          <div className="w-[110%] -ml-[5%] bg-white border-y border-slate-200 py-3.5 transform rotate-1 -mt-5 shadow-md overflow-hidden flex items-center">
+            <div className="flex gap-8 whitespace-nowrap animate-marquee-reverse">
+              {[...tickerItems, ...tickerItems, ...tickerItems].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-8 text-slate-900 font-extrabold text-lg sm:text-2xl tracking-tight">
+                  <span>{item}</span>
+                  <span className="text-[#ff6422] text-xl font-normal">✦</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };

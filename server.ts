@@ -152,32 +152,8 @@ async function fetchFreshPortfolioData() {
     };
   });
 
-  const normalizedProfile = {
-    name: profile?.name || 'Lucky Choudhary',
-    title: profile?.title || 'Full Stack Developer',
-    heroQuote: profile?.heroQuote || '',
-    experienceYears: profile?.experienceYears || '',
-    projectsCompleted: profile?.projectsCompleted || '',
-    problemsSolved: profile?.problemsSolved || '',
-    gpa: profile?.gpa || '',
-    degree: profile?.degree || '',
-    university: profile?.university || '',
-    whyHireMeBio: profile?.whyHireMeBio || '',
-    github: profile?.github || 'https://github.com/luckychoudhary',
-    linkedin: profile?.linkedin || 'https://linkedin.com/in/lucky-choudhary08292',
-    leetcode: profile?.leetcode || 'https://leetcode.com/luckychoudhary',
-    twitter: (profile?.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary') ? profile.twitter : 'https://x.com/_its_lucky',
-    email: profile?.email || 'contact.luckychoudhary@gmail.com',
-    phone: profile?.phone || '',
-    website: profile?.website || '',
-    resumeUrl: profile?.resumeUrl || '#',
-    heroImage: profile?.heroImage || '',
-    whyHireMeImage: profile?.whyHireMeImage || '',
-    ...(profile || {}),
-  };
-
   const data = {
-    profile: normalizedProfile,
+    profile: profile || null,
     skills: skills || [],
     certificates: certificates || [],
     projects: projects || [],

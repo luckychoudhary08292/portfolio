@@ -102,29 +102,39 @@ export const HireModal: React.FC<HireModalProps> = ({ isOpen, onClose }) => {
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2">Message Sent Successfully!</h3>
             <p className="text-sm text-slate-600 max-w-sm leading-relaxed">
-              Thank you for reaching out. <span className="text-[#ff6422] font-bold">{profile.name || 'Lucky'}</span> will review your opportunity and reply within 24 hours.
+              Thank you for reaching out.{' '}
+              {profile.name ? (
+                <span className="text-[#ff6422] font-bold">{profile.name}</span>
+              ) : (
+                'We'
+              )}{' '}
+              will review your opportunity and reply within 24 hours.
             </p>
           </div>
         ) : (
           <div className="relative z-10">
-            {/* Header: Developer Presence & Status Badge */}
+            {/* Header: Profile Presence & Status Badge */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-2xl bg-[#ff6422] text-white font-black text-sm flex items-center justify-center shadow-md shadow-orange-500/25 uppercase tracking-tighter shrink-0">
-                {profile.name ? profile.name.slice(0, 2).toUpperCase() : 'LC'}
-              </div>
+              {profile.name && (
+                <div className="w-11 h-11 rounded-2xl bg-[#ff6422] text-white font-black text-sm flex items-center justify-center shadow-md shadow-orange-500/25 uppercase tracking-tighter shrink-0">
+                  {profile.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">
-                    Connect with {profile.name || 'Developer'}
+                    {profile.name ? `Connect with ${profile.name}` : 'Get in Touch'}
                   </h3>
                   <span className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-wider shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Available
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 truncate mt-0.5">
-                  {profile.title || 'Software Engineer'} • Actively interviewing
-                </p>
+                {profile.title && (
+                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                    {profile.title}
+                  </p>
+                )}
               </div>
             </div>
 

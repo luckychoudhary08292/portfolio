@@ -8,13 +8,12 @@ export interface SocialLinksProps {
   showLabels?: boolean;
 }
 
-// Helper to format URLs based on database / admin inputs
+// Helper to format URLs strictly from database / admin inputs (no hardcoded fallbacks)
 export const formatSocialUrl = (
   url: string | undefined,
-  platformBase: string,
-  fallbackUsername: string
+  platformBase: string
 ): string => {
-  if (!url || !url.trim()) return `${platformBase}/${fallbackUsername}`;
+  if (!url || !url.trim()) return '';
   const trimmed = url.trim();
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   if (trimmed.startsWith('@')) return `${platformBase}/${trimmed.slice(1)}`;
@@ -22,7 +21,7 @@ export const formatSocialUrl = (
 };
 
 export const getGmailUrl = (emailVal: string | undefined): string => {
-  if (!emailVal || !emailVal.trim()) return 'mailto:contact.luckychoudhary@gmail.com';
+  if (!emailVal || !emailVal.trim()) return '';
   const trimmed = emailVal.trim();
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
   const clean = trimmed.replace(/^mailto:/, '');
@@ -32,26 +31,20 @@ export const getGmailUrl = (emailVal: string | undefined): string => {
 export const useSocialLinksData = () => {
   const { profile } = usePortfolio();
 
-  const githubUrl = formatSocialUrl(profile.github, 'https://github.com', 'luckychoudhary');
-  const linkedinUrl = formatSocialUrl(profile.linkedin, 'https://linkedin.com/in', 'lucky-choudhary08292');
-  const leetcodeUrl = formatSocialUrl(profile.leetcode, 'https://leetcode.com', 'luckychoudhary');
-  const twitterUrl = formatSocialUrl(
-    profile.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary'
-      ? profile.twitter
-      : 'https://x.com/_its_lucky',
-    'https://x.com',
-    '_its_lucky'
-  );
+  const githubUrl = formatSocialUrl(profile.github, 'https://github.com');
+  const linkedinUrl = formatSocialUrl(profile.linkedin, 'https://linkedin.com/in');
+  const leetcodeUrl = formatSocialUrl(profile.leetcode, 'https://leetcode.com');
+  const twitterUrl = formatSocialUrl(profile.twitter, 'https://x.com');
   const gmailUrl = getGmailUrl(profile.email);
-  const displayEmail = (profile.email || 'contact.luckychoudhary@gmail.com').replace(/^mailto:/, '');
+  const displayEmail = (profile.email || '').replace(/^mailto:/, '');
 
-  return [
+  const allItems = [
     {
       id: 'github',
       name: 'GitHub',
       displayValue: profile.github
         ? profile.github.replace(/^https?:\/\/(www\.)?github\.com\/?/, '@')
-        : '@luckychoudhary',
+        : '',
       url: githubUrl,
       brandColor: '#24292e',
       hoverBg: 'hover:bg-[#24292e] hover:border-[#24292e] hover:shadow-[#24292e]/30',
@@ -72,7 +65,7 @@ export const useSocialLinksData = () => {
       name: 'LeetCode',
       displayValue: profile.leetcode
         ? profile.leetcode.replace(/^https?:\/\/(www\.)?leetcode\.com\/?/, '')
-        : 'luckychoudhary',
+        : '',
       url: leetcodeUrl,
       brandColor: '#ffa116',
       hoverBg: 'hover:bg-[#ffa116] hover:border-[#ffa116] hover:shadow-[#ffa116]/30',
@@ -102,9 +95,9 @@ export const useSocialLinksData = () => {
     {
       id: 'twitter',
       name: 'X (Twitter)',
-      displayValue: profile.twitter && profile.twitter !== 'https://twitter.com/luckychoudhary'
+      displayValue: profile.twitter
         ? profile.twitter.replace(/^https?:\/\/(www\.)?(twitter|x)\.com\/?/, '@')
-        : '@_its_lucky',
+        : '',
       url: twitterUrl,
       brandColor: '#0f1419',
       hoverBg: 'hover:bg-black hover:border-black hover:shadow-black/30',
@@ -121,7 +114,7 @@ export const useSocialLinksData = () => {
       name: 'LinkedIn',
       displayValue: profile.linkedin
         ? profile.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\/?/, '')
-        : 'lucky-choudhary',
+        : '',
       url: linkedinUrl,
       brandColor: '#0a66c2',
       hoverBg: 'hover:bg-[#0a66c2] hover:border-[#0a66c2] hover:shadow-[#0a66c2]/30',
@@ -134,6 +127,8 @@ export const useSocialLinksData = () => {
       ),
     },
   ];
+
+  return allItems.filter((item) => Boolean(item.url));
 };
 
 /**
