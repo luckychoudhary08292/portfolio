@@ -3,6 +3,8 @@ import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import compression from 'compression';
 import {
@@ -55,6 +57,7 @@ app.get(['/health', '/api/ping'], (_req: Request, res: Response) => {
 });
 
 let isConnecting = false;
+let connectPromise: Promise<void> | null = null;
 
 async function connectDB() {
   const currentUri = (process.env.MONGODB_URI || '').trim().replace(/^["']+|["']+$/g, '');
@@ -63,41 +66,217 @@ async function connectDB() {
     return;
   }
   if (mongoose.connection.readyState === 1) return;
-  if (isConnecting) return;
-  try {
-    isConnecting = true;
-    console.log('Connecting to MongoDB at:', currentUri.replace(/:[^:@]+@/, ':***@'));
-    await mongoose.connect(currentUri, {
-      maxPoolSize: 10,
-      minPoolSize: 2,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
-    console.log('✅ Connected to MongoDB successfully!');
-    // Pre-warm portfolio cache asynchronously immediately after DB connects
-    warmPortfolioCache();
-  } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error);
-  } finally {
-    isConnecting = false;
-  }
+  if (isConnecting && connectPromise) return connectPromise;
+
+  isConnecting = true;
+  connectPromise = (async () => {
+    try {
+      console.log('Connecting to MongoDB at:', currentUri.replace(/:[^:@]+@/, ':***@'));
+      await mongoose.connect(currentUri, {
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 8000,
+        socketTimeoutMS: 45000,
+      });
+      console.log('✅ Connected to MongoDB successfully!');
+      warmPortfolioCache();
+    } catch (error) {
+      console.error('❌ MongoDB Connection Error:', error);
+    } finally {
+      isConnecting = false;
+      connectPromise = null;
+    }
+  })();
+
+  return connectPromise;
 }
 
 // ==========================================
-// MULTI-TIER IN-MEMORY CACHE ENGINE
+// MULTI-TIER MEMORY + BINARY MEDIA CACHE ENGINE
 // ==========================================
+interface MediaCacheEntry {
+  buffer: Buffer;
+  mimeType: string;
+  etag: string;
+}
+
+const mediaCache = new Map<string, MediaCacheEntry>();
+const MAX_MEDIA_CACHE_ENTRIES = 200;
+
+function setMediaCacheEntry(key: string, entry: MediaCacheEntry) {
+  if (mediaCache.size >= MAX_MEDIA_CACHE_ENTRIES && !mediaCache.has(key)) {
+    const oldestKey = mediaCache.keys().next().value;
+    if (oldestKey) mediaCache.delete(oldestKey);
+  }
+  mediaCache.set(key, entry);
+}
+
+function parseDataUri(dataUri: string): { entry: MediaCacheEntry; hash: string } | null {
+  if (!dataUri || typeof dataUri !== 'string' || !dataUri.startsWith('data:')) return null;
+  const commaIdx = dataUri.indexOf(',');
+  if (commaIdx === -1) return null;
+  const header = dataUri.slice(5, commaIdx); // after "data:"
+  const base64Data = dataUri.slice(commaIdx + 1);
+  if (!header.includes('base64') || !base64Data) return null;
+
+  const mimeType = header.split(';')[0] || 'image/png';
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    const hash = crypto.createHash('sha1').update(buffer).digest('hex').slice(0, 10);
+    return {
+      entry: { buffer, mimeType, etag: `"${hash}"` },
+      hash,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function resolveMediaField(value: string | undefined, mediaKey: string, endpointPath: string): string {
+  if (!value || typeof value !== 'string') return '';
+  if (value.startsWith('data:')) {
+    const parsed = parseDataUri(value);
+    if (parsed) {
+      setMediaCacheEntry(mediaKey, parsed.entry);
+      return `${endpointPath}?v=${parsed.hash}`;
+    }
+    return '';
+  }
+  return value;
+}
+
 interface PortfolioCacheStore {
   data: any;
   cachedAt: number;
   etag: string;
+  isFullVerified: boolean;
 }
 
 let portfolioCache: PortfolioCacheStore | null = null;
-const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes fresh window
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh window
 let isRefreshingCache = false;
+let inFlightLitePromise: Promise<PortfolioCacheStore> | null = null;
 
-async function fetchFreshPortfolioData() {
+function formatExperiences(experiences: any[]) {
+  return (experiences || []).map((exp: any) => {
+    const title = exp.title || exp.role || '';
+    const subtitle = exp.subtitle || exp.company || '';
+    const date = exp.date || exp.period || '';
+    const place = exp.place || exp.location || '';
+    const order = typeof exp.order === 'number' ? exp.order : 0;
+
+    return {
+      ...exp,
+      id: exp._id ? String(exp._id) : exp.id,
+      title,
+      subtitle,
+      date,
+      place,
+      order,
+      role: title,
+      company: subtitle,
+      period: date,
+      location: place,
+    };
+  });
+}
+
+// Ultra-fast ~140ms MongoDB query excluding heavy base64 blobs for instant cold-boot response
+async function fetchLitePortfolioData(): Promise<PortfolioCacheStore> {
+  if (inFlightLitePromise) return inFlightLitePromise;
+
+  inFlightLitePromise = (async () => {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+
+    let profile: any = null;
+    let skills: any[] = [];
+    let certificates: any[] = [];
+    let projects: any[] = [];
+    let experiences: any[] = [];
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const [p, s, c, pr, ex] = await Promise.all([
+          Profile.findOne().select('-heroImage -whyHireMeImage').lean().exec(),
+          SkillCategory.find().select('-image -items.logo').sort({ order: 1 }).lean().exec(),
+          Certificate.find().select('-image').sort({ order: 1 }).lean().exec(),
+          Project.find().select('-image -gallery').sort({ order: 1 }).lean().exec(),
+          Experience.find().sort({ order: 1 }).lean().exec(),
+        ]);
+        profile = p;
+        skills = s || [];
+        certificates = c || [];
+        projects = pr || [];
+        experiences = ex || [];
+      } catch (queryErr) {
+        console.warn('⚠️ Query error in fetchLitePortfolioData:', queryErr);
+      }
+    }
+
+    const versionTag = (doc: any) =>
+      doc?.updatedAt ? String(new Date(doc.updatedAt).getTime()) : '1';
+
+    const liteProfile = profile
+      ? {
+          ...profile,
+          heroImage: `/api/media/profile/heroImage?v=${versionTag(profile)}`,
+          whyHireMeImage: `/api/media/profile/whyHireMeImage?v=${versionTag(profile)}`,
+        }
+      : null;
+
+    const liteSkills = skills.map((s: any) => ({
+      ...s,
+      image: s._id ? `/api/media/skill/${String(s._id)}?v=${versionTag(s)}` : '',
+    }));
+
+    const liteCerts = certificates.map((c: any) => ({
+      ...c,
+      image: c._id ? `/api/media/certificate/${String(c._id)}?v=${versionTag(c)}` : '',
+    }));
+
+    const liteProjects = projects.map((pr: any) => ({
+      ...pr,
+      image: pr._id ? `/api/media/project/${String(pr._id)}?v=${versionTag(pr)}` : '',
+      gallery: [],
+    }));
+
+    const data = {
+      profile: liteProfile,
+      skills: liteSkills,
+      certificates: liteCerts,
+      projects: liteProjects,
+      experiences: formatExperiences(experiences),
+    };
+
+    const serialized = JSON.stringify(data);
+    const hash = crypto.createHash('sha1').update(serialized).digest('hex').slice(0, 12);
+    const store: PortfolioCacheStore = {
+      data,
+      cachedAt: Date.now(),
+      etag: `W/"lite-${hash}"`,
+      isFullVerified: false,
+    };
+
+    if (!portfolioCache) {
+      portfolioCache = store;
+    }
+
+    // Trigger background full media warmup without blocking current request
+    warmPortfolioCache();
+    return portfolioCache;
+  })();
+
+  try {
+    return await inFlightLitePromise;
+  } finally {
+    inFlightLitePromise = null;
+  }
+}
+
+async function fetchFreshPortfolioData(): Promise<PortfolioCacheStore> {
   if (mongoose.connection.readyState !== 1) {
     try {
       await connectDB();
@@ -129,44 +308,80 @@ async function fetchFreshPortfolioData() {
     }
   }
 
-  const normalizedExperiences = (experiences || []).map((exp: any) => {
-    const title = exp.title || exp.role || '';
-    const subtitle = exp.subtitle || exp.company || '';
-    const date = exp.date || exp.period || '';
-    const place = exp.place || exp.location || '';
-    const order = typeof exp.order === 'number' ? exp.order : 0;
+  const transformedProfile = profile
+    ? {
+        ...profile,
+        heroImage: resolveMediaField(profile.heroImage, 'profile:heroImage', '/api/media/profile/heroImage'),
+        whyHireMeImage: resolveMediaField(
+          profile.whyHireMeImage,
+          'profile:whyHireMeImage',
+          '/api/media/profile/whyHireMeImage'
+        ),
+      }
+    : null;
 
+  const transformedSkills = (skills || []).map((skill: any) => {
+    const skillId = skill._id ? String(skill._id) : '';
     return {
-      ...exp,
-      id: exp._id ? String(exp._id) : exp.id,
-      title,
-      subtitle,
-      date,
-      place,
-      order,
-      // Automatic backward fallback compatibility
-      role: title,
-      company: subtitle,
-      period: date,
-      location: place,
+      ...skill,
+      image: skillId
+        ? resolveMediaField(skill.image, `skill:${skillId}`, `/api/media/skill/${skillId}`)
+        : skill.image || '',
+      items: Array.isArray(skill.items)
+        ? skill.items.map((item: any, idx: number) => ({
+            ...item,
+            logo:
+              skillId && item.logo
+                ? resolveMediaField(item.logo, `skill:${skillId}:item:${idx}`, `/api/media/skill/${skillId}/item/${idx}`)
+                : item.logo || '',
+          }))
+        : [],
+    };
+  });
+
+  const transformedCertificates = (certificates || []).map((cert: any) => {
+    const certId = cert._id ? String(cert._id) : '';
+    return {
+      ...cert,
+      image: certId
+        ? resolveMediaField(cert.image, `certificate:${certId}`, `/api/media/certificate/${certId}`)
+        : cert.image || '',
+    };
+  });
+
+  const transformedProjects = (projects || []).map((proj: any) => {
+    const projId = proj._id ? String(proj._id) : '';
+    return {
+      ...proj,
+      image: projId
+        ? resolveMediaField(proj.image, `project:${projId}`, `/api/media/project/${projId}`)
+        : proj.image || '',
+      gallery: Array.isArray(proj.gallery)
+        ? proj.gallery
+            .map((img: string, idx: number) =>
+              projId ? resolveMediaField(img, `project:${projId}:gallery:${idx}`, `/api/media/project/${projId}/gallery/${idx}`) : img
+            )
+            .filter(Boolean)
+        : [],
     };
   });
 
   const data = {
-    profile: profile || null,
-    skills: skills || [],
-    certificates: certificates || [],
-    projects: projects || [],
-    experiences: normalizedExperiences,
+    profile: transformedProfile,
+    skills: transformedSkills,
+    certificates: transformedCertificates,
+    projects: transformedProjects,
+    experiences: formatExperiences(experiences),
   };
 
   const serialized = JSON.stringify(data);
-  const etag = `W/"${serialized.length}-${Date.now()}"`;
+  const hash = crypto.createHash('sha1').update(serialized).digest('hex').slice(0, 12);
 
   portfolioCache = {
     data,
     cachedAt: Date.now(),
-    etag,
+    etag: `W/"${hash}"`,
+    isFullVerified: true,
   };
 
   return portfolioCache;
@@ -177,7 +392,7 @@ function warmPortfolioCache() {
   isRefreshingCache = true;
   fetchFreshPortfolioData()
     .then(() => {
-      console.log('⚡ Portfolio cache pre-warmed & ready for sub-millisecond serving!');
+      console.log(`⚡ Portfolio + ${mediaCache.size} binary media assets pre-warmed & ready!`);
     })
     .catch((err) => {
       console.warn('⚠️ Cache warmup:', err.message || err);
@@ -189,48 +404,155 @@ function warmPortfolioCache() {
 
 export function invalidatePortfolioCache() {
   portfolioCache = null;
-  // Trigger immediate async pre-warm so next visitor gets instantaneous cache hit
+  mediaCache.clear();
   setTimeout(() => {
     warmPortfolioCache();
   }, 50);
 }
 
 // ==========================================
+// BINARY MEDIA STREAMING ENDPOINTS (/api/media/*)
+// ==========================================
+function sendCachedMedia(req: Request, res: Response, entry: MediaCacheEntry) {
+  if (req.headers['if-none-match'] === entry.etag) {
+    return res.status(304).end();
+  }
+  const hasVersion = Boolean(req.query.v);
+  res.setHeader('Content-Type', entry.mimeType);
+  res.setHeader('Content-Length', entry.buffer.length);
+  res.setHeader('ETag', entry.etag);
+  res.setHeader(
+    'Cache-Control',
+    hasVersion ? 'public, max-age=31536000, immutable' : 'public, max-age=300, stale-while-revalidate=86400'
+  );
+  return res.end(entry.buffer);
+}
+
+async function handleMediaRequest(
+  req: Request,
+  res: Response,
+  mediaKey: string,
+  fetchRawValue: () => Promise<string | undefined>
+) {
+  try {
+    const cached = mediaCache.get(mediaKey);
+    if (cached) {
+      return sendCachedMedia(req, res, cached);
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+
+    const rawValue = await fetchRawValue();
+    if (!rawValue) {
+      return res.status(404).end();
+    }
+
+    if (rawValue.startsWith('data:')) {
+      const parsed = parseDataUri(rawValue);
+      if (!parsed) return res.status(404).end();
+      setMediaCacheEntry(mediaKey, parsed.entry);
+      return sendCachedMedia(req, res, parsed.entry);
+    }
+
+    return res.redirect(302, rawValue);
+  } catch (err) {
+    console.warn(`⚠️ Media fetch error for ${mediaKey}:`, err);
+    return res.status(500).end();
+  }
+}
+
+app.get('/api/media/profile/:field', async (req: Request, res: Response) => {
+  const field = req.params.field;
+  if (field !== 'heroImage' && field !== 'whyHireMeImage') {
+    return res.status(400).end();
+  }
+  return handleMediaRequest(req, res, `profile:${field}`, async () => {
+    const doc: any = await Profile.findOne().select(field).lean().exec();
+    return doc?.[field];
+  });
+});
+
+app.get('/api/media/certificate/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  return handleMediaRequest(req, res, `certificate:${id}`, async () => {
+    const doc: any = await Certificate.findById(id).select('image').lean().exec();
+    return doc?.image;
+  });
+});
+
+app.get('/api/media/project/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  return handleMediaRequest(req, res, `project:${id}`, async () => {
+    const doc: any = await Project.findById(id).select('image').lean().exec();
+    return doc?.image;
+  });
+});
+
+app.get('/api/media/project/:id/gallery/:index', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const idx = parseInt(req.params.index, 10);
+  if (Number.isNaN(idx) || idx < 0) return res.status(400).end();
+  return handleMediaRequest(req, res, `project:${id}:gallery:${idx}`, async () => {
+    const doc: any = await Project.findById(id).select('gallery').lean().exec();
+    return doc?.gallery?.[idx];
+  });
+});
+
+app.get('/api/media/skill/:id', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  return handleMediaRequest(req, res, `skill:${id}`, async () => {
+    const doc: any = await SkillCategory.findById(id).select('image').lean().exec();
+    return doc?.image;
+  });
+});
+
+app.get('/api/media/skill/:id/item/:index', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const idx = parseInt(req.params.index, 10);
+  if (Number.isNaN(idx) || idx < 0) return res.status(400).end();
+  return handleMediaRequest(req, res, `skill:${id}:item:${idx}`, async () => {
+    const doc: any = await SkillCategory.findById(id).select('items').lean().exec();
+    return doc?.items?.[idx]?.logo;
+  });
+});
+
+// ==========================================
 // API ROUTES (ALL 7 ACTIVE COLLECTIONS + ADMIN PANEL)
 // ==========================================
 
-// Aggregated Portfolio Data for Blazing-Fast Initial Rendering (Sub-millisecond Cached)
+// Aggregated Portfolio Data (~14KB JSON without inline base64 blobs)
 app.get('/api/portfolio', async (req: Request, res: Response) => {
   try {
-    // 1. Instant Cache Hit: Return cached result in < 1ms
+    // 1. Instant Cache Hit: Return compact ~14KB result in < 1ms
     if (portfolioCache) {
-      // Check If-None-Match ETag header for 304 Not Modified
       if (req.headers['if-none-match'] === portfolioCache.etag) {
         return res.status(304).end();
       }
 
-      // If cache TTL expired, trigger background revalidation without blocking client (Stale-While-Revalidate)
-      if (Date.now() - portfolioCache.cachedAt > CACHE_TTL_MS) {
+      // Stale-While-Revalidate in background without blocking client
+      if (!portfolioCache.isFullVerified || Date.now() - portfolioCache.cachedAt > CACHE_TTL_MS) {
         warmPortfolioCache();
       }
 
       res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=180, stale-while-revalidate=86400');
       res.setHeader('ETag', portfolioCache.etag);
-      res.setHeader('X-Cache-Status', 'HIT');
+      res.setHeader('X-Cache-Status', portfolioCache.isFullVerified ? 'HIT' : 'LITE-HIT');
       return res.json({
         success: true,
         data: portfolioCache.data,
       });
     }
 
-    // 2. Cache Miss: Fetch fresh data from MongoDB
-    const fresh = await fetchFreshPortfolioData();
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=180, stale-while-revalidate=86400');
-    res.setHeader('ETag', fresh.etag);
-    res.setHeader('X-Cache-Status', 'MISS');
+    // 2. Cold Cache Miss: Run ultra-fast ~140ms lite query without 5.2MB image blobs
+    const lite = await fetchLitePortfolioData();
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=86400');
+    res.setHeader('ETag', lite.etag);
+    res.setHeader('X-Cache-Status', 'LITE-MISS');
     return res.json({
       success: true,
-      data: fresh.data,
+      data: lite.data,
     });
   } catch (error) {
     console.error('Error in /api/portfolio:', error);
@@ -942,10 +1264,49 @@ app.post('/api/reconnect', async (_req: Request, res: Response) => {
 // VITE MIDDLEWARE OR STATIC SERVING & STARTUP
 // ==========================================
 async function startServer() {
+  // Start DB connection immediately in parallel with Vite / static server setup
+  connectDB().catch((err) => console.error('Initial DB connection error:', err));
+
   if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.resolve(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
+    const distDir = path.resolve(__dirname, 'dist');
+    const indexHtmlPath = path.resolve(distDir, 'index.html');
+    let cachedProdHtml = '';
+    try {
+      cachedProdHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
+    } catch {}
+
+    app.use('/assets', express.static(path.resolve(distDir, 'assets'), { maxAge: '1y', immutable: true }));
+    app.use(express.static(distDir, { index: false }));
+
+    app.get('*', async (_req, res) => {
+      try {
+        const html = cachedProdHtml || fs.readFileSync(indexHtmlPath, 'utf-8');
+        let hydratedHtml = html;
+
+        // If cache isn't ready yet, fast-fetch lite (~140ms) so initial HTML already has DB data!
+        if (!portfolioCache && mongoose.connection.readyState === 1) {
+          try {
+            await fetchLitePortfolioData();
+          } catch {}
+        }
+
+        if (portfolioCache?.data) {
+          const heroUrl = portfolioCache.data?.profile?.heroImage;
+          const preloadTag =
+            heroUrl && typeof heroUrl === 'string'
+              ? `<link rel="preload" as="image" href="${heroUrl.replace(/"/g, '&quot;')}" fetchpriority="high" />`
+              : '';
+          const safeJson = JSON.stringify(portfolioCache.data).replace(/</g, '\\u003c');
+          const hydrateScript = `<script>window.__INITIAL_PORTFOLIO__=${safeJson};</script>`;
+          hydratedHtml = html.replace('</head>', `${preloadTag}${hydrateScript}</head>`);
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.send(hydratedHtml);
+      } catch {
+        return res.sendFile(indexHtmlPath);
+      }
     });
   } else {
     const { createServer: createViteServer } = await import('vite');
@@ -959,8 +1320,6 @@ async function startServer() {
   // Bind port immediately so Render health checks succeed without waiting for database handshake
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Portfolio Server running at http://localhost:${PORT}`);
-    // Connect to database in the background
-    connectDB().catch((err) => console.error('Initial DB connection error:', err));
   });
 
   // Render Keep-Alive: Ping to prevent Render free-tier cold sleep

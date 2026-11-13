@@ -34,6 +34,8 @@ export const WhyHireMeSection: React.FC<WhyHireMeSectionProps> = ({ onOpenHireMo
                   <img
                     src={profile.whyHireMeImage}
                     alt={profile.name || 'Portrait'}
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}

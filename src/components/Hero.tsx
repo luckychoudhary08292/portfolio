@@ -117,6 +117,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenHireModal, onExploreProjects }
                   src={profile.heroImage}
                   alt={profile.name ? `${profile.name}${profile.title ? ` - ${profile.title}` : ''}` : 'Portrait'}
                   loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';

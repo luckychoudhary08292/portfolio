@@ -212,7 +212,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({ onOpenProjec
                     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black flex items-center justify-center p-6 text-center">
                       <Layers className="w-16 h-16 text-[#ff6422]/40 mb-2" />
                     </div>
-                    {item.image && (
+                    {item.image && (Math.abs(offset) <= 2 || totalProjects <= 5) && (
                       <img
                         src={item.image}
                         alt={item.title}

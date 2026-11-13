@@ -435,7 +435,10 @@ export const CertificatesSection: React.FC = () => {
                       }`}
                     >
                       {/* Image background */}
-                      {cert.image ? (
+                      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black flex items-center justify-center p-6 text-center">
+                        <Award className="w-16 h-16 text-[#ff6422]/40 mb-2" />
+                      </div>
+                      {cert.image && (Math.abs(offset) <= 2 || totalCerts <= 5) && (
                         <img
                           src={cert.image}
                           alt={cert.title}
@@ -444,14 +447,10 @@ export const CertificatesSection: React.FC = () => {
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
-                          className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out ${
+                          className={`relative z-0 w-full h-full object-cover transition-transform duration-700 ease-out ${
                             isCenter ? 'hover:scale-105' : ''
                           }`}
                         />
-                      ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black flex items-center justify-center p-6 text-center">
-                          <Award className="w-16 h-16 text-[#ff6422]/40 mb-2" />
-                        </div>
                       )}
 
                       {/* Scrim Overlay */}
